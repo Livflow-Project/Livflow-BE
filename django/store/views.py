@@ -8,13 +8,9 @@ from .serializers import StoreSerializer
 from ledger.models import Transaction
 from ledger.serializers import TransactionSerializer
 
-# Store 관련 처리 클래스
-class StoreView(APIView):
-    permission_classes = [IsAuthenticated]
-
     # 모든 가게 목록 조회 및 새로운 가게 등록
 class StoreView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     # 모든 가게 목록 조회 및 새로운 가게 등록
     def get(self, request):
