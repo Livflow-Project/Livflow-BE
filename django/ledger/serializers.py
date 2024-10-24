@@ -5,7 +5,7 @@ from .models import Transaction, Category
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id', 'user', 'category', 'transaction_type', 'amount', 'description', 'date', 'created_at']  # 'remarks' 대신 'description'과 'date' 추가
+        fields = ['id', 'user', 'category', 'transaction_type', 'amount', 'description', 'date', 'created_at'] 
         read_only_fields = ['user'] 
 # Category 시리얼라이저
 class CategorySerializer(serializers.ModelSerializer):

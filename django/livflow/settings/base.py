@@ -45,7 +45,7 @@ DEFAULT_DJANGO_APPS = [
     'ledger',
     'users',
     'costcalcul',
-    'store'
+    'store',
 ]
 
 CUSTOM_INSTALLED_APPS = [
@@ -61,7 +61,6 @@ CUSTOM_INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "django_cleanup.apps.CleanupConfig",
-    "storages",
 ]
 
 INSTALLED_APPS = DEFAULT_DJANGO_APPS + CUSTOM_INSTALLED_APPS
@@ -175,7 +174,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
+WSGI_APPLICATION = 'livflow.wsgi.application'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
