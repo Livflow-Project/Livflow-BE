@@ -1,0 +1,32 @@
+# Python 관련 파일들
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# 환경 설정 파일
+.env
+.venv
+venv/
+.DS_Store
+
+# Poetry, Pip 관련 파일
+poetry.lock
+pyproject.toml
+
+# 가상 환경 관련 파일들
+.venv/
+venv/
+
+# MacOS 및 기타 시스템 파일들
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+
+# IDE 설정 파일 (예: VSCode)
+.vscode/
+.idea/
