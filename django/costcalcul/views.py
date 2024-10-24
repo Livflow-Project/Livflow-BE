@@ -9,7 +9,7 @@ from .utils import calculate_unit_price, calculate_recipe_cost  # utils에서 �
 
 # 재료 관련 클래스
 class IngredientView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     # 모든 재료 목록 조회
     def get(self, request):
@@ -48,7 +48,7 @@ class IngredientView(APIView):
 
 # 레시피 및 레시피 재료 관련 클래스
 class RecipeView(APIView):
-    permission_classes = [IsAuthenticated]
+   #permission_classes = [IsAuthenticated]
 
     # 모든 레시피 목록 조회
     def get(self, request):
@@ -107,7 +107,7 @@ class RecipeView(APIView):
 
 # 레시피 재료 생성 클래스
 class RecipeItemCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = RecipeItemSerializer(data=request.data)

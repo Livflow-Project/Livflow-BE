@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 
 # Transaction 목록 조회 및 생성 클래스
 class TransactionView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     # 거래 내역 목록 조회
     def get(self, request):
@@ -19,22 +19,27 @@ class TransactionView(APIView):
     # 거래 내역 생성
     def post(self, request):
         transaction_data = {
-            "user_id": request.user.id,
             "category": request.data.get("category"),
             "transaction_type": request.data.get("transaction_type"),
             "amount": request.data.get("amount"),
-            "remarks": request.data.get("remarks")
+            "description": request.data.get("description"),
+            "date": request.data.get("date")
         }
         serializer = TransactionSerializer(data=transaction_data)
+        
         if serializer.is_valid():
-            serializer.save()
+            # serializer.save()에 user를 추가
+            serializer.save(user=request.user)  # 인증된 사용자로 user 필드를 자동 설정
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 # Transaction 상세 조회, 수정 및 삭제 클래스
 class TransactionDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+   #permission_classes = [IsAuthenticated]
 
     # 특정 거래 내역 조회
     def get(self, request, id):
@@ -60,7 +65,7 @@ class TransactionDetailView(APIView):
 
 # Category 목록 조회 및 생성 클래스
 class CategoryView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     # 카테고리 목록 조회
     def get(self, request):
@@ -79,7 +84,7 @@ class CategoryView(APIView):
 
 # Category 상세 조회, 수정 및 삭제 클래스
 class CategoryDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     # 특정 카테고리 조회
     def get(self, request, id):
