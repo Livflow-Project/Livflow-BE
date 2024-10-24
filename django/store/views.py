@@ -46,15 +46,18 @@ class StoreView(APIView):
 
     def post(self, request):
         store_data = {
-            "user_id": request.user.id,
             "name": request.data.get("name"),
-            "address": request.data.get("address"),
+            "address": request.data.get("address")
         }
         serializer = StoreSerializer(data=store_data)
+        
         if serializer.is_valid():
-            serializer.save()
+            # Store 인스턴스 생성 시 user를 자동으로 추가
+            serializer.save(user=request.user)  # 인증된 사용자로 user 필드를 설정
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     # 특정 가게 조회 (가계부 정보 포함)
     def get_detail(self, request, id):
