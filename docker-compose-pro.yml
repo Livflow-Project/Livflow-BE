@@ -4,7 +4,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: DockerfilePro
+      dockerfile: dockerfilepro
     container_name: dg01
     command: >
       bash -c "python manage.py collectstatic --no-input &&
@@ -27,7 +27,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEBUG=0
-      - DJANGO_SETTINGS_MODULE=config.settings.product
+      - DJANGO_SETTINGS_MODULE=livflow.settings.product
 
   nginx:
     image: nginx:alpine
