@@ -9,11 +9,19 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
-# Install pip requirements
-COPY requirements.txt .
-RUN python -m pip install -r requirements.txt
+# Install Poetry
+RUN pip install poetry
 
+# Set the working directory
 WORKDIR /app
+
+# Copy pyproject.toml and poetry.lock first to leverage Docker cache
+COPY pyproject.toml poetry.lock /app/
+
+# Install dependencies using Poetry, disabling the virtual environment
+RUN poetry config virtualenvs.create false && poetry install
+
+# Copy the rest of the application code
 COPY . /app
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
@@ -21,5 +29,5 @@ COPY . /app
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
 
-# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
+# Set the default command to run the application with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi"]
