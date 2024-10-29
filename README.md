@@ -1,3 +1,16 @@
+사용방법
+
+1단계
+git clone git@github.com:glory-coffee-project/back-end-coffee.git
+cd Desktop/back-end-coffee
+
+2단계
+docker-compose -f docker-compose-dev.yml up --build
+
+3단계
+http://localhost:8000
+
+
 # back-end-coffee
 백엔드 coffee project
 
