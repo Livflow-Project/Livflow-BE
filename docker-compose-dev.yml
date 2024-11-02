@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: dockerfile  # 개발용 Dockerfile 사용
-    container_name: dg01_dev
+    container_name: liv_dev
     command: >
       bash -c "python manage.py makemigrations &&
               python manage.py migrate &&
