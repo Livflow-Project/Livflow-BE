@@ -20,7 +20,7 @@ services:
       - "8000:8000"
     networks:
       - app-network
-    env_file: .env  # .env 파일 추가
+    env_file: .env
 
   nginx:
     image: nginx:alpine
@@ -38,15 +38,14 @@ services:
       - web
     networks:
       - app-network
-    env_file: .env
 
   certbot:
     image: certbot/certbot
     volumes:
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
+      - ./data/certbot/conf:/etc/letsencrypt  # 인증서가 저장될 경로
+      - ./data/certbot/www:/var/www/certbot  # Certbot 인증 경로
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    
+
   db:
     image: postgres:latest
     container_name: db01
@@ -60,7 +59,7 @@ services:
       - "5432:5432"
     networks:
       - app-network
-    env_file: .env  # .env 파일 추가
+    env_file: .env
 
 volumes:
   postgres_data:
