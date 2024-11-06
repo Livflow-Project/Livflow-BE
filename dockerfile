@@ -30,4 +30,4 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /
 USER appuser
 
 # Set the default command to run the application with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi"]
+CMD ["gunicorn", "livflow.wsgi:application", "--bind", "0.0.0.0:8000"]
