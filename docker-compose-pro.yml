@@ -30,8 +30,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt  # Nginx와 Certbot이 동일한 경로로 마운트
+      - ./data/certbot/www:/var/www/certbot  # Certbot 인증 파일이 저장되는 경로
       - static_volume:/app/static
       - media_volume:/app/media
     depends_on:
@@ -42,9 +42,10 @@ services:
   certbot:
     image: certbot/certbot
     volumes:
-      - ./data/certbot/conf:/etc/letsencrypt  # 인증서가 저장될 경로
+      - /etc/letsencrypt:/etc/letsencrypt  # Nginx와 동일한 인증서 경로로 설정
       - ./data/certbot/www:/var/www/certbot  # Certbot 인증 경로
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
 
   db:
     image: postgres:latest
