@@ -9,7 +9,7 @@ services:
     command: >
       bash -c "python manage.py makemigrations &&
               python manage.py migrate &&
-              python manage.py createsuperusers &&
+              python manage.py createsuperuser &&
               python manage.py create_initial_data &&
               python manage.py create_dumy_data &&
               python manage.py runserver 0.0.0.0:8000"
