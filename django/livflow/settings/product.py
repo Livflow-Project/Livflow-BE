@@ -31,7 +31,8 @@ MEDIA_ROOT = '/app/media'
 
 # CORS 설정 (필요시)
 CORS_ALLOWED_ORIGINS = [
-    "https://your-domain.com",
+    "https://www.livflow.co.kr",
+    "http://localhost:5173"
 ]
 
 # 기타 보안 설정
