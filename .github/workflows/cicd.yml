@@ -46,7 +46,7 @@ jobs:
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ env.SSH_HOST }}
-          port: 2221
+          port: 2222
           username: ${{ env.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
