@@ -13,7 +13,6 @@ jobs:
     name: Build and Deploy to Server
     runs-on: ubuntu-latest
 
-    # 환경 변수 로드 단계 추가
     env:
       PROJECT_DIR: ~/back-end-coffee
 
@@ -44,7 +43,7 @@ jobs:
 
       # 5. 서버에 배포 (SSH 접속)
       - name: Deploy to server
-        uses: appleboy/ssh-action@v0.1.11
+        uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ env.SSH_HOST }}
           port: ${{ env.SSH_PORT }}
@@ -58,7 +57,7 @@ jobs:
 
       # 6. Nginx 서비스 재시작
       - name: Restart Nginx
-        uses: appleboy/ssh-action@v0.1.11
+        uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ env.SSH_HOST }}
           port: ${{ env.SSH_PORT }}
