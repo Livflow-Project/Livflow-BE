@@ -1,0 +1,68 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    name: Build and Deploy to Server
+    runs-on: ubuntu-latest
+
+    # 환경 변수 로드 단계 추가
+    env:
+      PROJECT_DIR: ~/back-end-coffee
+
+    steps:
+      # 1. 리포지토리 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. .env 파일 로드
+      - name: Load environment variables from .env
+        run: |
+          if [ -f .env ]; then
+            export $(cat .env | xargs)
+          fi
+
+      # 3. Python 설정
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # 4. 종속성 설치
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      # 5. 서버에 배포 (SSH 접속)
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.11
+        with:
+          host: ${{ env.SSH_HOST }}
+          port: ${{ env.SSH_PORT }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd $PROJECT_DIR
+            git pull origin main
+            sudo docker-compose -f docker-compose-pro.yml down
+            sudo docker-compose -f docker-compose-pro.yml up -d --build
+
+      # 6. Nginx 서비스 재시작
+      - name: Restart Nginx
+        uses: appleboy/ssh-action@v0.1.11
+        with:
+          host: ${{ env.SSH_HOST }}
+          port: ${{ env.SSH_PORT }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo systemctl restart nginx

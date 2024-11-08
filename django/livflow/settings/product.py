@@ -30,9 +30,24 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = '/app/media'
 
 # CORS 설정 (필요시)
+
+CORS_ALLOW_ALL_ORIGINS = True  # 개발 시 모든 도메인 허용 (배포 시에는 특정 도메인만 허용하도록 변경)
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "https://www.livflow.co.kr",
-    "http://localhost:5173"
+    "https://api.livflow.co.kr",
+]
+CORS_ALLOW_HEADERS = [
+    "authorization",
+    "content-type",
+    "accept",
+    "origin",
+    "x-requested-with",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://www.livflow.co.kr",
+    "https://api.livflow.co.kr",
 ]
 
 # 기타 보안 설정
@@ -46,3 +61,33 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 ROOT_URLCONF = "livflow.urls"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django_error.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
