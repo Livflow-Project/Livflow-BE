@@ -44,6 +44,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd back-end-coffee
+            git config pull.rebase false
             git pull origin main
             sudo docker-compose -f docker-compose-pro.yml down
             sudo docker-compose -f docker-compose-pro.yml up -d --build
