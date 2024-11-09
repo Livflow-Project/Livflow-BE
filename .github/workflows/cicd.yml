@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd $PROJECT_DIR
+            cd back-end-coffee
             git pull origin main
             sudo docker-compose -f docker-compose-pro.yml down
             sudo docker-compose -f docker-compose-pro.yml up -d --build
