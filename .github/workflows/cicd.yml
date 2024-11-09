@@ -48,7 +48,7 @@ jobs:
             git pull origin main
             sudo docker-compose -f docker-compose-pro.yml down
             sudo docker-compose -f docker-compose-pro.yml up -d --build
-
+            
       # 5. Nginx 서비스 재시작
       - name: Restart Nginx
         uses: appleboy/ssh-action@v0.1.8
