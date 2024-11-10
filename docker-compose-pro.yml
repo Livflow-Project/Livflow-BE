@@ -43,9 +43,9 @@ services:
     image: postgres:latest
     container_name: db01
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=joo
+      - POSTGRES_PASSWORD=livflow
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
