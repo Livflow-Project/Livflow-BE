@@ -44,11 +44,16 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/joo/back-end-coffee
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S ls
             git config pull.rebase false
             git pull origin main
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d --build
+            # 로그 디렉토리 생성 및 권한 설정
+            sudo mkdir -p /home/joo/back-end-coffee/django/logs
+            sudo touch /home/joo/back-end-coffee/django/logs/django_error.log
+            sudo chmod -R 777 /home/joo/back-end-coffee/django/logs
+            # Docker Compose로 컨테이너 재시작
+            sudo docker-compose -f docker-compose-pro.yml down
+            sudo docker-compose -f docker-compose-pro.yml up -d --build
+
             
       # 5. Nginx 서비스 재시작
       - name: Restart Nginx

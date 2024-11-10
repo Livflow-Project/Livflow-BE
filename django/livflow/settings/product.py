@@ -1,4 +1,7 @@
 from .base import *  # base.py 설정을 가져옵니다.
+import os
+from pathlib import Path
+
 
 # Debug 설정
 DEBUG = False
@@ -62,6 +65,8 @@ SECURE_HSTS_PRELOAD = True
 
 ROOT_URLCONF = "livflow.urls"
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -79,7 +84,7 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django_error.log'),
+            'filename': '/home/joo/back-end-coffee/django/logs/django_error.log',
             'formatter': 'verbose',
         },
     },
