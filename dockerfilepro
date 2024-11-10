@@ -18,12 +18,13 @@ COPY pyproject.toml poetry.lock /app/
 # Install dependencies
 RUN poetry config virtualenvs.create false \
   && poetry install --only main --no-interaction --no-ansi
+  
 
 # Copy the rest of the application code to the working directory
 COPY . /app 
 
 # 로그 디렉토리 생성 (이 부분 추가)
-RUN mkdir -p /app/django/logs && touch /app/django/logs/django_error.log
+RUN mkdir -p /app/logs && touch /app/logs/django_error.log && chmod -R 777 /app/logs
 
 # Collect static files 
 RUN python django/manage.py collectstatic --noinput --settings=livflow.settings.product
