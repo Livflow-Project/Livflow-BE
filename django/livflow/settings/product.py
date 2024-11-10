@@ -7,7 +7,7 @@ from pathlib import Path
 DEBUG = False
 
 # 허용된 호스트 (홈서버의 IP 주소나 도메인 추가)
-ALLOWED_HOSTS = ['your-domain.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['api.livflow.co.kr','www.livflow.co.kr',  'localhost', '127.0.0.1']
 
 # 데이터베이스 설정
 DATABASES = {
