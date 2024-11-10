@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PROJECT_DIR: ~/back-end-coffee
+      PROJECT_DIR: /home/joo/back-end-coffee  # 절대 경로 사용
 
     steps:
       # 1. 리포지토리 체크아웃
@@ -43,11 +43,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd back-end-coffee
+            cd $PROJECT_DIR
             git config pull.rebase false
             git pull origin main
-            sudo docker-compose -f docker-compose-pro.yml down
-            sudo docker-compose -f docker-compose-pro.yml up -d --build
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d --build
             
       # 5. Nginx 서비스 재시작
       - name: Restart Nginx
@@ -58,5 +58,5 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd back-end-coffee
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose restart ng01
+            cd $PROJECT_DIR
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml restart ng01
