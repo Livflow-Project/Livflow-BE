@@ -7,8 +7,6 @@ cd Desktop/back-end-coffee
 2단계
 docker-compose -f docker-compose-dev.yml up --build
 
-3단계
-http://localhost:8000
 
 
 # back-end-coffee
@@ -22,7 +20,7 @@ http://localhost:8000
 
 내용
 
-개인 NAS를 구축하여 서버를 돌림
+개인 NAS 구축
 
 docker와 필요에 따라서 poetry를 사용해서 종속성을 유지함
 
