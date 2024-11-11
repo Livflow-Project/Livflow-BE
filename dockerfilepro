@@ -14,20 +14,20 @@ RUN pip install --upgrade pip && pip install poetry
 # Set the working directory
 WORKDIR /app
 
-# pyproject.toml 및 poetry.lock 파일 복사
-COPY ./pyproject.toml ./poetry.lock /app/
+# Copy pyproject.toml and poetry.lock files
+COPY pyproject.toml poetry.lock /app/
 
-# 복사가 제대로 되었는지 확인
-RUN echo "Checking if pyproject.toml and poetry.lock exist in /app" && ls -la /app
+# Check if pyproject.toml and poetry.lock are copied
+RUN echo "Checking pyproject.toml and poetry.lock" && ls -la /app
 
-# Poetry 의존성 설치
+# Install dependencies
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
 
-# 나머지 코드 복사
+# Copy the rest of the application code
 COPY . /app
 
-# 복사가 제대로 되었는지 확인
-RUN echo "Checking if all files are copied to /app" && ls -la /app
+# Check if all files are copied
+RUN echo "Final check of /app" && ls -la /app
 
 # 로그 디렉토리 생성 및 권한 설정
 RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
