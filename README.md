@@ -18,19 +18,21 @@ docker-compose -f docker-compose-dev.yml up --build
 
 언어 : python
 
-프레임워크 : django , postgresql, redis, docker, kafka
+프레임워크 : django , postgresql, redis, docker, kafka, swagger
 
 내용
 
+social login(kakao, naver, google)
+
 가계부, 원가계산 api
 
-home NAS 구축, Ubuntu, 
+home NAS 구축, Ubuntu, ssh
 
 docker ,poetry
 
-nginx
+nginx, ssl
 
-CICD
+CICD(git action)
 
 
 cicd 확인용 21:15
