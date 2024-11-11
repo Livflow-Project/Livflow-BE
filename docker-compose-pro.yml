@@ -14,9 +14,8 @@ services:
     volumes:
       - ./pyproject.toml:/app/pyproject.toml
       - ./poetry.lock:/app/poetry.lock
-      - ./django/livflow:/app/livflow
-      - ./django/manage.py:/app/manage.py
-      - ./logs:/app/logs
+      - ./django:/app  # Django 프로젝트 디렉토리
+      - ./logs:/app/logs  # 로그 파일 저장 경로
       - static_volume:/app/static
       - media_volume:/app/media
 
@@ -57,7 +56,7 @@ services:
     networks:
       - app-network
     env_file: .env
-
+    
 volumes:
   postgres_data:
   static_volume:

@@ -4,7 +4,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: dockerfilepro  # 개발용 Dockerfile 사용
+      dockerfile: dockerfile  # 개발용 Dockerfile 사용
     container_name: liv_dev
     command: >
       bash -c "python manage.py makemigrations &&
