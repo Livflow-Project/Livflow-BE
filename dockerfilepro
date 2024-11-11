@@ -35,7 +35,7 @@ RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
     chmod -R 777 /home/joo/back-end-coffee/django/logs
 
 # Collect static files
-RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
+RUN python django/manage.py collectstatic --noinput --settings=livflow.settings.product
 
 # Expose port 8000
 EXPOSE 8000
