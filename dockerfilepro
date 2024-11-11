@@ -13,14 +13,13 @@ RUN apt-get update && apt-get install -y \
 # Install Poetry
 RUN pip install --upgrade pip && pip install poetry
 
-# Create and set the working directory
 WORKDIR /app
-
-# Copy pyproject.toml and poetry.lock to the working directory
 COPY pyproject.toml poetry.lock /app/
-
-# Install dependencies
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
+
+# 이후에 나머지 파일을 복사
+COPY . /app
+
 
 # Copy the rest of the application code to the working directory
 COPY . /app
