@@ -12,10 +12,14 @@ services:
                python manage.py migrate &&
                gunicorn livflow.wsgi:application --bind 0.0.0.0:8000"
     volumes:
-      - ./django:/app
-      - ./logs:/app/logs  # 로그 파일 저장 경로 추가
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./django/livflow:/app/livflow
+      - ./django/manage.py:/app/manage.py
+      - ./logs:/app/logs
       - static_volume:/app/static
       - media_volume:/app/media
+
     ports:
       - "8000:8000"
     networks:
@@ -53,7 +57,7 @@ services:
     networks:
       - app-network
     env_file: .env
-    
+
 volumes:
   postgres_data:
   static_volume:
