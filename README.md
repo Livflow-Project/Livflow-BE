@@ -12,25 +12,25 @@ docker-compose -f docker-compose-dev.yml up --build
 # back-end-coffee
 백엔드 coffee project
 
+https://velog.io/@glory_joo/posts
+
 백엔드 사용 툴
 
 언어 : python
 
-프레임워크 : django , postgresql, redis, docker
+프레임워크 : django , postgresql, redis, docker, kafka
 
 내용
 
-개인 NAS 구축
+가계부, 원가계산 api
 
-docker와 필요에 따라서 poetry를 사용해서 종속성을 유지함
+home NAS 구축, Ubuntu, 
 
-기본적인 가계부, 단가계산 등은 장고 프레임워크를 사용하여 구성
+docker ,poetry
 
-키오스크와 가계부 연동시에는 redis를 사용하여 인메모리로 빠르게 정보를 전달할 계획
+nginx
 
-소셜로그인은 프론트엔드와 같이 사용하여 사용자 편의성을 증대시킬 예정
-
-또한 개인 정보 보호에 대한 위험성을 줄이기 위해 일반 로그인은 만들지 않을 예정
+CICD
 
 
 cicd 확인용 21:15
