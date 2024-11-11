@@ -6,9 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies (including PostgreSQL client)
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN pip install --upgrade pip && pip install poetry
@@ -16,28 +14,28 @@ RUN pip install --upgrade pip && pip install poetry
 # Set the working directory
 WORKDIR /app
 
-# Copy pyproject.toml and poetry.lock to the working directory
+# pyproject.toml 및 poetry.lock 파일 복사
 COPY ./pyproject.toml ./poetry.lock /app/
 
-# Verify if files are copied correctly
-RUN ls /app
+# 복사가 제대로 되었는지 확인
+RUN echo "Checking if pyproject.toml and poetry.lock exist in /app" && ls -la /app
 
-# Install dependencies
+# Poetry 의존성 설치
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
 
-# Copy the rest of the application code to the working directory
+# 나머지 코드 복사
 COPY . /app
 
-# 로그 디렉토리 생성 및 권한 설정 (절대경로 사용)
+# 복사가 제대로 되었는지 확인
+RUN echo "Checking if all files are copied to /app" && ls -la /app
+
+# 로그 디렉토리 생성 및 권한 설정
 RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
     touch /home/joo/back-end-coffee/django/logs/django_error.log && \
     chmod -R 777 /home/joo/back-end-coffee/django/logs
 
-# Verify if the application files are copied correctly
-RUN ls /app
-
 # Collect static files
-RUN python django/manage.py collectstatic --noinput --settings=livflow.settings.product
+RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
 # Expose port 8000
 EXPOSE 8000
