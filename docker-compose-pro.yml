@@ -53,7 +53,7 @@ services:
     networks:
       - app-network
     env_file: .env
-
+    
 volumes:
   postgres_data:
   static_volume:

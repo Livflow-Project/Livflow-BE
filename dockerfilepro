@@ -13,13 +13,17 @@ RUN apt-get update && apt-get install -y \
 # Install Poetry
 RUN pip install --upgrade pip && pip install poetry
 
+# Set the working directory
 WORKDIR /app
+
+# Copy pyproject.toml and poetry.lock to the working directory
 COPY pyproject.toml poetry.lock /app/
+
+# Verify if files are copied correctly
+RUN ls /app
+
+# Install dependencies
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
-
-# 이후에 나머지 파일을 복사
-COPY . /app
-
 
 # Copy the rest of the application code to the working directory
 COPY . /app
@@ -28,6 +32,9 @@ COPY . /app
 RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
     touch /home/joo/back-end-coffee/django/logs/django_error.log && \
     chmod -R 777 /home/joo/back-end-coffee/django/logs
+
+# Verify if the application files are copied correctly
+RUN ls /app
 
 # Collect static files
 RUN python django/manage.py collectstatic --noinput --settings=livflow.settings.product
