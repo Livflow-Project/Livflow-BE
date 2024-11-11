@@ -8,23 +8,29 @@ ENV PYTHONUNBUFFERED=1
 # Install Poetry
 RUN pip install --upgrade pip && pip install poetry
 
-# Create and set the working directory
+# Set the working directory
 WORKDIR /app
 
 # Copy pyproject.toml and poetry.lock to the working directory
-COPY pyproject.toml poetry.lock /app/
+COPY pyproject.toml poetry.lock ./
+
+# Check if pyproject.toml is copied correctly
+RUN ls /app
 
 # Install dependencies
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
 
 # Copy the rest of the application code to the working directory
-COPY . /app
+COPY . .
 
-# 작업 디렉토리를 /app으로 설정
-WORKDIR /app
+# Ensure manage.py is present
+RUN ls /app
 
 # 로그 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/logs && touch /app/logs/django_error.log && chmod -R 777 /app/logs
+
+# Set the working directory to /app where manage.py is located
+WORKDIR /app
 
 # Collect static files
 RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
