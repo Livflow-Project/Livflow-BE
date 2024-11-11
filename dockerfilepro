@@ -17,6 +17,9 @@ WORKDIR /app
 # Copy pyproject.toml and poetry.lock files
 COPY pyproject.toml poetry.lock /app/
 
+# 권한 설정 추가
+RUN chmod -R 755 /app
+
 # Check if pyproject.toml and poetry.lock are copied
 RUN echo "Checking pyproject.toml and poetry.lock" && ls -la /app
 
