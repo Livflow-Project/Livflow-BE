@@ -14,14 +14,14 @@ WORKDIR /app
 # Copy pyproject.toml and poetry.lock to the working directory
 COPY pyproject.toml poetry.lock /app/
 
-# Check if pyproject.toml is copied correctly
-RUN ls /app
-
 # Install dependencies
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
 
 # Copy the rest of the application code to the working directory
 COPY . /app
+
+# 작업 디렉토리를 /app으로 설정
+WORKDIR /app
 
 # 로그 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/logs && touch /app/logs/django_error.log && chmod -R 777 /app/logs
