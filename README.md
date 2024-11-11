@@ -12,7 +12,7 @@ docker-compose -f docker-compose-dev.yml up --build
 # back-end-coffee
 백엔드 coffee project
 
-https://velog.io/@glory_joo/posts
+[https://velog.io/@glory_joo/posts](https://velog.io/@glory_joo/series/livflowproject)
 
 백엔드 사용 툴
 
