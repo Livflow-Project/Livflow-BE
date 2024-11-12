@@ -28,15 +28,11 @@ DEFAULT_DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ledger',
-    'users',
-    'costcalcul',
-    'store',
+    "django.contrib.sites",
 ]
 
 CUSTOM_INSTALLED_APPS = [
     "corsheaders",
-    "django.contrib.sites",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -47,7 +43,12 @@ CUSTOM_INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "django_cleanup.apps.CleanupConfig",
+    'ledger',
+    'users',
+    'costcalcul',
+    'store',
 ]
+SITE_ID = 1
 
 INSTALLED_APPS = DEFAULT_DJANGO_APPS + CUSTOM_INSTALLED_APPS
 
