@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "livflow"
 version = "0.1.0"
-description = ""
+description = "My Django Project"
 authors = ["youngkwangjoo <dudrknd1642@gmail.com>"]
-readme = "README.md"
+packages = [
+    { include = "livflow", from = "django" }
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -18,7 +21,6 @@ django-cors-headers = "^4.5.0"
 django-cleanup = "^9.0.0"
 cryptography = "^43.0.3"
 psycopg2-binary = "^2.9.10"
-gunicorn = "^23.0.0"
 
 
 [build-system]
