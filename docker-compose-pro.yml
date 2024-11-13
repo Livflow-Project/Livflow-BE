@@ -14,8 +14,8 @@ services:
     volumes:
       - ./pyproject.toml:/app/pyproject.toml
       - ./poetry.lock:/app/poetry.lock
-      - ./django:/app  # Django 프로젝트 디렉토리
-      - ./logs:/app/logs  # 로그 파일 저장 경로
+      - ./django:/app
+      - ./logs:/app/logs
       - static_volume:/app/static
       - media_volume:/app/media
     ports:
@@ -32,7 +32,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt  # 인증서 경로
+      - /etc/letsencrypt:/etc/letsencrypt
       - static_volume:/app/static
       - media_volume:/app/media
     depends_on:
