@@ -18,13 +18,11 @@ services:
       - ./logs:/app/logs  # 로그 파일 저장 경로
       - static_volume:/app/static
       - media_volume:/app/media
-
     ports:
       - "8000:8000"
     networks:
       - app-network
     env_file: .env
-
 
   nginx:
     image: nginx:alpine
@@ -56,11 +54,23 @@ services:
     networks:
       - app-network
     env_file: .env
-    
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  portainer_data:
 
 networks:
   app-network:
