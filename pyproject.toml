@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "My Django Project"
 authors = ["youngkwangjoo <dudrknd1642@gmail.com>"]
 packages = [
-    { include = "livflow" }
+    { include = "django" }
 ]
 
 
