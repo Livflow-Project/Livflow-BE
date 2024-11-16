@@ -5,8 +5,8 @@ FROM python:3.12
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies (including PostgreSQL client)
-RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (including PostgreSQL client and distutils)
+RUN apt-get update && apt-get install -y postgresql-client python3-distutils && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN pip install --upgrade pip && pip install poetry
@@ -17,22 +17,13 @@ WORKDIR /app
 # Copy pyproject.toml and poetry.lock files
 COPY pyproject.toml poetry.lock /app/
 
-# 권한 설정 추가
-RUN chmod -R 755 /app
-
-# Check if pyproject.toml and poetry.lock are copied
-RUN echo "Checking pyproject.toml and poetry.lock" && ls -la /app
-
-# Install dependencies
+# Install dependencies using Poetry
 RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
 
 # Copy the rest of the application code
 COPY . /app
 
-# Check if all files are copied
-RUN echo "Final check of /app" && ls -la /app
-
-# 로그 디렉토리 생성 및 권한 설정
+# Create logs directory and set permissions
 RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
     touch /home/joo/back-end-coffee/django/logs/django_error.log && \
     chmod -R 777 /home/joo/back-end-coffee/django/logs

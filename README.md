@@ -28,7 +28,7 @@ social login(kakao, naver, google)
 
 home NAS 구축, Ubuntu, ssh
 
-docker ,poetry
+docker ,poetry, portainer
 
 nginx, ssl
 
