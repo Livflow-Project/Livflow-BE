@@ -1,16 +1,17 @@
-# Use the official Python slim image for Python 3.12
-FROM python:3.12-slim
+# Use the official Python image from the Docker Hub
+FROM python:3.12
 
-# Set environment variables to prevent Python from generating .pyc files and to enable output buffering
+# Set environment variables to prevent .pyc files and enable buffer flushing
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies
+# Install system dependencies (including PostgreSQL client, distutils, and others)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     curl \
     python3.12-venv \
+    python3.12-distutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip, setuptools, and wheel
@@ -22,7 +23,7 @@ RUN pip install poetry
 # Set the working directory
 WORKDIR /app
 
-# Copy pyproject.toml and poetry.lock files to the working directory
+# Copy pyproject.toml and poetry.lock files
 COPY pyproject.toml poetry.lock /app/
 
 # Install dependencies using Poetry
@@ -39,7 +40,7 @@ RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
 # Collect static files for Django
 RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
-# Expose port 8000 for the application
+# Expose port 8000
 EXPOSE 8000
 
 # Command to run the application
