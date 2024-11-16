@@ -1,5 +1,5 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.12
+FROM python:3.10
 
 # Set environment variables to prevent .pyc files and enable buffer flushing
 ENV PYTHONDONTWRITEBYTECODE=1
