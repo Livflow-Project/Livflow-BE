@@ -15,7 +15,7 @@ services:
       - ./pyproject.toml:/app/pyproject.toml:ro
       - ./poetry.lock:/app/poetry.lock:ro
       - ./django:/app/django
-      - ./logs:/app/logs
+      - /home/joo/back-end-coffee/django/logs:/home/joo/back-end-coffee/django/logs 
       - static_volume:/app/django/static
       - media_volume:/app/django/media
     ports:

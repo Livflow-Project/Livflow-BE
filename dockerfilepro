@@ -1,49 +1,45 @@
 # Use the official Python 3.12 image
 FROM python:3.12-slim
 
-# Set environment variables to prevent .pyc files and enable buffer flushing
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies (including PostgreSQL client)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip, setuptools, and wheel
+# Upgrade pip and install Poetry
 RUN pip install --upgrade pip setuptools wheel
-
-# Install Poetry
 RUN pip install poetry
 
 # Set the working directory
 WORKDIR /app
 
-# Copy pyproject.toml and poetry.lock files to the working directory
+# Copy poetry files
 COPY pyproject.toml poetry.lock ./
 
 # Copy the Django application
 COPY django/ /app/django/
 
-# Install dependencies using Poetry
+# Create logs directory with full path
+RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
+    touch /home/joo/back-end-coffee/django/logs/django_error.log && \
+    chmod -R 777 /home/joo/back-end-coffee/django/logs
+
+# Install dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --only main --no-interaction --no-ansi
-
-# Create logs directory and set permissions
-RUN mkdir -p /app/logs && \
-    touch /app/logs/django_error.log && \
-    chmod -R 777 /app/logs
 
 # Set working directory to Django project root
 WORKDIR /app/django
 
-# Collect static files for Django
+# Collect static files
 RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
-# Expose port 8000 for the application
 EXPOSE 8000
 
-# Run the application using Gunicorn
 CMD ["gunicorn", "livflow.wsgi:application", "--bind", "0.0.0.0:8000"]
