@@ -22,21 +22,25 @@ RUN pip install poetry
 WORKDIR /app
 
 # Copy pyproject.toml and poetry.lock files to the working directory
-COPY pyproject.toml poetry.lock /app/
+COPY pyproject.toml poetry.lock ./
+
+# Copy the Django application
+COPY django/ /app/django/
 
 # Install dependencies using Poetry
-RUN poetry config virtualenvs.create false && poetry install --only main --no-interaction --no-ansi
-
-# Copy the rest of the application code
-COPY . /app
+RUN poetry config virtualenvs.create false && \
+    poetry install --only main --no-interaction --no-ansi
 
 # Create logs directory and set permissions
 RUN mkdir -p /app/logs && \
     touch /app/logs/django_error.log && \
     chmod -R 777 /app/logs
 
+# Set working directory to Django project root
+WORKDIR /app/django
+
 # Collect static files for Django
-RUN python /app/manage.py collectstatic --noinput --settings=livflow.settings.product
+RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
 # Expose port 8000 for the application
 EXPOSE 8000

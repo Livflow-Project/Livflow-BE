@@ -12,12 +12,12 @@ services:
                python manage.py migrate &&
                gunicorn livflow.wsgi:application --bind 0.0.0.0:8000"
     volumes:
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./poetry.lock:/app/poetry.lock
-      - ./django:/app/django  # 전체 django 디렉토리 마운트
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - ./poetry.lock:/app/poetry.lock:ro
+      - ./django:/app/django
       - ./logs:/app/logs
-      - static_volume:/app/static
-      - media_volume:/app/media
+      - static_volume:/app/django/static
+      - media_volume:/app/django/media
     ports:
       - "8000:8000"
     networks:
