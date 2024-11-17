@@ -39,3 +39,5 @@ CICD(git action)
 - 백엔드 1인개발이라 P/R, commit convention 사용 안 할 예정
 - 해야할 일, 버그 fix, 기능 추가는 issue에 적어서 히스토리 남김
 - 그 외에 사담은 velog에 적으면서 프로젝트 진행
+
+cicd 11.18 01:05
