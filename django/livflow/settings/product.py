@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=f57%wq3lx)q4i6efhnbt!(7d567@nf6ifms9ib18n!0x-(_pz')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'false'
+DEBUG = 'False'
 
 ALLOWED_HOSTS = ['api.livflow.co.kr', 'www.livflow.co.kr', 'localhost', '127.0.0.1']
 
@@ -196,3 +196,19 @@ USE_TZ = True
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
