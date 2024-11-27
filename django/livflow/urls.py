@@ -7,12 +7,12 @@ from drf_yasg import openapi
 # Swagger 설정
 schema_view = get_schema_view(
    openapi.Info(
-      title="Your Project API",
+      title="Livflow API",
       default_version='v1',
-      description="API documentation for your project",
+      description="Livflow 가계부, 단가계산기 api 입니다.",
       terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="contact@yourproject.local"),
-      license=openapi.License(name="BSD License"),
+      contact=openapi.Contact(email="dudrknd1642@gmail.com"),
+      license=openapi.License(name="MIT License"),
    ),
    public=True,
    permission_classes=(permissions.AllowAny,),  # 모든 사용자가 접근 가능
