@@ -15,7 +15,8 @@ schema_view = get_schema_view(
       license=openapi.License(name="MIT License"),
    ),
    public=True,
-   permission_classes=(permissions.AllowAny,),  # 모든 사용자가 접근 가능
+   permission_classes=(permissions.AllowAny,),
+   url='https://api.livflow.co.kr',# 모든 사용자가 접근 가능
 )
 
 # URL 패턴
