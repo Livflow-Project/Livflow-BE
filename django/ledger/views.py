@@ -90,10 +90,10 @@ class RecipeListView(APIView):
             sales_price_per_item = request.data.get('sales_price_per_item')
             production_quantity_per_batch = request.data.get('production_quantity_per_batch')
 
-            # 각 재료의 단가 계산
+            # 각 재료의 단가 계산 및 원가 계산
             for ingredient in ingredients:
                 try:
-                    ingredient_instance = Ingredient.objects.get(id=ingredient['ingredient_id'])
+                    ingredient_instance = Ingredient.objects.get(id=ingredient['ingredient']['id'])
                 except Ingredient.DoesNotExist:
                     return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
                 ingredient['unit_price'] = calculate_unit_price(ingredient_instance.purchase_price, ingredient_instance.purchase_quantity)
