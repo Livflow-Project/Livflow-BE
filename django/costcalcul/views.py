@@ -6,8 +6,8 @@ from .models import Ingredient, Recipe, RecipeItem
 from .serializers import IngredientSerializer, RecipeSerializer, RecipeItemSerializer
 from .utils import calculate_unit_price, calculate_recipe_cost  # utils에서 계산 함수 가져오기
 
-# 재료 관련 클래스
-class IngredientView(APIView):
+# 모든 재료 목록 조회 및 생성 클래스
+class IngredientListView(APIView):
     # permission_classes = [IsAuthenticated]
 
     # 모든 재료 목록 조회
@@ -23,6 +23,10 @@ class IngredientView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# 특정 재료 조회, 수정 및 삭제 클래스
+class IngredientDetailView(APIView):
+    # permission_classes = [IsAuthenticated]
 
     # 특정 재료 조회
     def get(self, request, id):
@@ -54,8 +58,8 @@ class IngredientView(APIView):
         ingredient.delete()
         return Response({"message": "재료가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
-# 레시피 및 레시피 재료 관련 클래스
-class RecipeView(APIView):
+# 레시피 목록 조회 및 생성 클래스
+class RecipeListView(APIView):
     # permission_classes = [IsAuthenticated]
 
     # 모든 레시피 목록 조회
@@ -94,6 +98,10 @@ class RecipeView(APIView):
             return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# 특정 레시피 조회, 수정 및 삭제 클래스
+class RecipeDetailView(APIView):
+    # permission_classes = [IsAuthenticated]
 
     # 특정 레시피 조회
     def get(self, request, id):
