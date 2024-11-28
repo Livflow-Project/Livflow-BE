@@ -2,6 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .models import Ingredient, Recipe, RecipeItem
 from .serializers import IngredientSerializer, RecipeSerializer, RecipeItemSerializer
 from .utils import calculate_unit_price, calculate_recipe_cost  # utils에서 계산 함수 가져오기
@@ -16,6 +18,9 @@ class IngredientListView(APIView):
         serializer = IngredientSerializer(ingredients, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        request_body=IngredientSerializer
+    )
     # 새로운 재료 생성
     def post(self, request):
         serializer = IngredientSerializer(data=request.data)
@@ -37,6 +42,9 @@ class IngredientDetailView(APIView):
         serializer = IngredientSerializer(ingredient)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        request_body=IngredientSerializer
+    )
     # 특정 재료 수정
     def put(self, request, id):
         try:
@@ -68,6 +76,9 @@ class RecipeListView(APIView):
         serializer = RecipeSerializer(recipes, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        request_body=RecipeSerializer
+    )
     # 새로운 레시피 생성 및 비용 계산
     def post(self, request):
         serializer = RecipeSerializer(data=request.data)
@@ -112,6 +123,9 @@ class RecipeDetailView(APIView):
         serializer = RecipeSerializer(recipe)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        request_body=RecipeSerializer
+    )
     # 특정 레시피 수정
     def put(self, request, id):
         try:
@@ -137,6 +151,9 @@ class RecipeDetailView(APIView):
 class RecipeItemCreateView(APIView):
     # permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        request_body=RecipeItemSerializer
+    )
     def post(self, request):
         serializer = RecipeItemSerializer(data=request.data)
         if serializer.is_valid():
