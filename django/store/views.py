@@ -7,7 +7,6 @@ from drf_yasg import openapi
 from .models import Store
 from .serializers import StoreSerializer
 from ledger.models import Transaction
-from ledger.serializers import TransactionSerializer
 
 # 모든 가게 목록 조회 및 새로운 가게 등록
 class StoreListView(APIView):
@@ -15,6 +14,10 @@ class StoreListView(APIView):
 
     # 모든 가게 목록 조회
     def get(self, request):
+        # 로그인 여부 확인
+        if not request.user.is_authenticated:
+            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
+
         stores = Store.objects.filter(user_id=request.user.id)
         store_list = []
 
@@ -57,6 +60,10 @@ class StoreListView(APIView):
     )
     # 새로운 가게 등록
     def post(self, request):
+        # 로그인 여부 확인
+        if not request.user.is_authenticated:
+            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
+
         store_data = {
             "name": request.data.get("name"),
             "address": request.data.get("address")
@@ -76,6 +83,10 @@ class StoreDetailView(APIView):
 
     # 특정 가게 조회 (가계부 정보 포함)
     def get(self, request, id):
+        # 로그인 여부 확인
+        if not request.user.is_authenticated:
+            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
             store = Store.objects.get(id=id, user_id=request.user.id)
         except Store.DoesNotExist:
@@ -115,6 +126,10 @@ class StoreDetailView(APIView):
     )
     # 가게 정보 수정
     def put(self, request, id):
+        # 로그인 여부 확인
+        if not request.user.is_authenticated:
+            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
             store = Store.objects.get(id=id, user_id=request.user.id)
         except Store.DoesNotExist:
@@ -131,6 +146,10 @@ class StoreDetailView(APIView):
 
     # 가게 삭제
     def delete(self, request, id):
+        # 로그인 여부 확인
+        if not request.user.is_authenticated:
+            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
+
         try:
             store = Store.objects.get(id=id, user_id=request.user.id)
         except Store.DoesNotExist:
