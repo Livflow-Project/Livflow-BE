@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from costcalcul.models import Ingredient, Recipe, RecipeItem
-
+from .models import Transaction
 
 # 재료(Ingredient) 시리얼라이저
 class IngredientSerializer(serializers.ModelSerializer):
@@ -31,3 +31,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         for ingredient_data in ingredients_data:
             RecipeItem.objects.create(recipe=recipe, **ingredient_data)
         return recipe
+class TransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = ['id', 'user', 'amount', 'transaction_type', 'category', 'date', 'description', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
