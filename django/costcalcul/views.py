@@ -2,14 +2,13 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
 from .models import Ingredient, Recipe, RecipeItem
 from .serializers import IngredientSerializer, RecipeSerializer, RecipeItemSerializer
 from .utils import calculate_unit_price, calculate_recipe_cost  # utils에서 계산 함수 가져오기
 
 # 재료 관련 클래스
 class IngredientView(APIView):
-    #permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     # 모든 재료 목록 조회
     def get(self, request):
@@ -27,13 +26,19 @@ class IngredientView(APIView):
 
     # 특정 재료 조회
     def get(self, request, id):
-        ingredient = get_object_or_404(Ingredient, id=id)
+        try:
+            ingredient = Ingredient.objects.get(id=id)
+        except Ingredient.DoesNotExist:
+            return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         serializer = IngredientSerializer(ingredient)
         return Response(serializer.data)
 
     # 특정 재료 수정
     def put(self, request, id):
-        ingredient = get_object_or_404(Ingredient, id=id)
+        try:
+            ingredient = Ingredient.objects.get(id=id)
+        except Ingredient.DoesNotExist:
+            return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         serializer = IngredientSerializer(ingredient, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -42,13 +47,16 @@ class IngredientView(APIView):
 
     # 특정 재료 삭제
     def delete(self, request, id):
-        ingredient = get_object_or_404(Ingredient, id=id)
+        try:
+            ingredient = Ingredient.objects.get(id=id)
+        except Ingredient.DoesNotExist:
+            return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         ingredient.delete()
         return Response({"message": "재료가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
 # 레시피 및 레시피 재료 관련 클래스
 class RecipeView(APIView):
-   #permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     # 모든 레시피 목록 조회
     def get(self, request):
@@ -69,7 +77,10 @@ class RecipeView(APIView):
 
             # 각 재료의 단가 계산
             for ingredient in ingredients:
-                ingredient_instance = get_object_or_404(Ingredient, id=ingredient['ingredient_id'])
+                try:
+                    ingredient_instance = Ingredient.objects.get(id=ingredient['ingredient_id'])
+                except Ingredient.DoesNotExist:
+                    return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
                 ingredient['unit_price'] = calculate_unit_price(ingredient_instance.purchase_price, ingredient_instance.purchase_quantity)
 
             # 레시피 원가 관련 정보 계산
@@ -86,13 +97,19 @@ class RecipeView(APIView):
 
     # 특정 레시피 조회
     def get(self, request, id):
-        recipe = get_object_or_404(Recipe, id=id)
+        try:
+            recipe = Recipe.objects.get(id=id)
+        except Recipe.DoesNotExist:
+            return Response({"detail": "해당 레시피를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         serializer = RecipeSerializer(recipe)
         return Response(serializer.data)
 
     # 특정 레시피 수정
     def put(self, request, id):
-        recipe = get_object_or_404(Recipe, id=id)
+        try:
+            recipe = Recipe.objects.get(id=id)
+        except Recipe.DoesNotExist:
+            return Response({"detail": "해당 레시피를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -101,13 +118,16 @@ class RecipeView(APIView):
 
     # 특정 레시피 삭제
     def delete(self, request, id):
-        recipe = get_object_or_404(Recipe, id=id)
+        try:
+            recipe = Recipe.objects.get(id=id)
+        except Recipe.DoesNotExist:
+            return Response({"detail": "해당 레시피를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         recipe.delete()
         return Response({"message": "레시피가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
 # 레시피 재료 생성 클래스
 class RecipeItemCreateView(APIView):
-    #permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = RecipeItemSerializer(data=request.data)
