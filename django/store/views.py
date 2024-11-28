@@ -2,6 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .models import Store
 from .serializers import StoreSerializer
 from ledger.models import Transaction
@@ -43,6 +45,16 @@ class StoreListView(APIView):
 
         return Response(store_list)
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='가게 이름'),
+                'address': openapi.Schema(type=openapi.TYPE_STRING, description='가게 주소'),
+            },
+            required=['name', 'address'],
+        )
+    )
     # 새로운 가게 등록
     def post(self, request):
         store_data = {
@@ -91,6 +103,16 @@ class StoreDetailView(APIView):
         }
         return Response(store_data)
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='가게 이름'),
+                'address': openapi.Schema(type=openapi.TYPE_STRING, description='가게 주소'),
+            },
+            required=['name', 'address'],
+        )
+    )
     # 가게 정보 수정
     def put(self, request, id):
         try:
