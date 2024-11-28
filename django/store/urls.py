@@ -1,10 +1,10 @@
 from django.urls import path
-from .views import StoreView
+from .views import StoreListView, StoreDetailView
 
 urlpatterns = [
-    # 가게 목록 조회 및 가게 등록
-    path('stores/', StoreView.as_view(), name='store-list-create'),
-
+    # 모든 가게 목록 조회 및 새로운 가게 등록
+    path('stores/', StoreListView.as_view(), name='store-list'),
+    
     # 특정 가게 조회, 수정 및 삭제
-    path('stores/<int:id>/', StoreView.as_view(), name='store-detail'),
+    path('stores/<int:id>/', StoreDetailView.as_view(), name='store-detail'),
 ]
