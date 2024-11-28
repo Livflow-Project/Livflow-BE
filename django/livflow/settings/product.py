@@ -92,6 +92,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://www.livflow.co.kr",
     "https://api.livflow.co.kr",
+    "https://api.livflow.co.k:8443",
 ]
 
 # Security settings
