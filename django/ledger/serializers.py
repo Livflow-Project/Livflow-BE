@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Ingredient, Recipe, RecipeItem
+from costcalcul.models import Ingredient, Recipe, RecipeItem
+
 
 # 재료(Ingredient) 시리얼라이저
 class IngredientSerializer(serializers.ModelSerializer):

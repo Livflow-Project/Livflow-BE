@@ -4,9 +4,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Ingredient, Recipe, RecipeItem
-from .serializers import IngredientSerializer, RecipeSerializer, RecipeItemSerializer
-from .utils import calculate_unit_price, calculate_recipe_cost  # utils에서 계산 함수 가져오기
+from costcalcul.models import Ingredient, Recipe, RecipeItem
+from costcalcul.serializers import IngredientSerializer, RecipeSerializer, RecipeItemSerializer
+from costcalcul.utils import calculate_unit_price, calculate_recipe_cost  # utils에서 계산 함수 가져오기
 
 # 모든 재료 목록 조회 및 생성 클래스
 class IngredientListView(APIView):
@@ -66,7 +66,7 @@ class IngredientDetailView(APIView):
         ingredient.delete()
         return Response({"message": "재료가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
-# 레시피 목록 조회 및 생성 클래스
+# 레시피 목록  및 생성 클래스
 class RecipeListView(APIView):
     # permission_classes = [IsAuthenticated]
 
