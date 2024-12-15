@@ -46,13 +46,23 @@ jobs:
             cd /home/joo/back-end-coffee
             git config pull.rebase false
             git pull origin main
-            # 로그 디렉토리 생성 및 권한 설정
+
+            # 로그 디렉토리 설정
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S mkdir -p /home/joo/back-end-coffee/django/logs
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S touch /home/joo/back-end-coffee/django/logs/django_error.log
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S chmod -R 777 /home/joo/back-end-coffee/django/logs
-            # 기존 컨테이너 제거 및 재빌드
+
+            # 잠긴 컨테이너 강제 정리
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker ps -a -q | xargs -r sudo docker stop || true
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker ps -a -q | xargs -r sudo docker rm -f || true
+
+            # Docker 리소스 정리
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker system prune -a -f || true
+
+            # 기존 컨테이너 제거 및 재시작
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down --remove-orphans
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d --build
+
 
 
       # 5. Nginx 서비스 재시작
