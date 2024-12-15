@@ -8,8 +8,8 @@ from drf_yasg import openapi
 from .models import Transaction, Category
 from .serializers import TransactionSerializer, CategorySerializer
 
-# Transaction 관련 처리 클래스
-class TransactionView(APIView):
+# 거래 내역 목록 조회 및 생성 클래스
+class TransactionListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
@@ -49,11 +49,15 @@ class TransactionView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# 특정 거래 내역 조회, 수정 및 삭제 클래스
+class TransactionDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         operation_summary="특정 거래 내역 조회",
         responses={200: TransactionSerializer, 404: "거래 내역을 찾을 수 없음"},
     )
-    def get_detail(self, request, id):
+    def get(self, request, id):
         transaction = get_object_or_404(Transaction, id=id, user_id=request.user.id)
         serializer = TransactionSerializer(transaction)
         return Response(serializer.data)
@@ -80,8 +84,8 @@ class TransactionView(APIView):
         transaction.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
-# Category 관련 처리 클래스
-class CategoryView(APIView):
+# 카테고리 목록 조회 및 생성 클래스
+class CategoryListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
@@ -112,11 +116,15 @@ class CategoryView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# 특정 카테고리 조회, 수정 및 삭제 클래스
+class CategoryDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         operation_summary="특정 카테고리 조회",
         responses={200: CategorySerializer, 404: "카테고리를 찾을 수 없음"},
     )
-    def get_detail(self, request, id):
+    def get(self, request, id):
         category = get_object_or_404(Category, id=id)
         serializer = CategorySerializer(category)
         return Response(serializer.data)
@@ -141,4 +149,4 @@ class CategoryView(APIView):
     def delete(self, request, id):
         category = get_object_or_404(Category, id=id)
         category.delete()
-        return Response({"message": "카테고리가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
