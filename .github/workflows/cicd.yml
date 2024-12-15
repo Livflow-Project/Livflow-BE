@@ -50,9 +50,10 @@ jobs:
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S mkdir -p /home/joo/back-end-coffee/django/logs
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S touch /home/joo/back-end-coffee/django/logs/django_error.log
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S chmod -R 777 /home/joo/back-end-coffee/django/logs
-            # Docker Compose로 컨테이너 재시작
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down
+            # 기존 컨테이너 제거 및 재빌드
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down --remove-orphans
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d --build
+
 
       # 5. Nginx 서비스 재시작
       - name: Restart Nginx
