@@ -56,9 +56,6 @@ jobs:
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker ps -a -q | xargs -r sudo docker stop || true
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker ps -a -q | xargs -r sudo docker rm -f || true
 
-            # Docker 리소스 정리
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker system prune -a -f || true
-
             # 기존 컨테이너 제거 및 재시작
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down --remove-orphans
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d --build
