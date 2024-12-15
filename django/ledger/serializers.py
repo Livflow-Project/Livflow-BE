@@ -1,22 +1,25 @@
 from rest_framework import serializers
-from .models import Category, Transaction
+from .models import Transaction, Category
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description']  # 모든 필드 포함
+        fields = ['id', 'name']
 
 class TransactionSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)  # `Category` 정보 포함 (읽기 전용)
+    # 카테고리의 세부 정보를 포함하여 직렬화
+    category = CategorySerializer(read_only=True)  # 읽기 전용
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
-        source='category',  # 내부적으로 연결될 모델 필드
-        write_only=True     # 입력 전용 필드
+        source='category',  # 내부 필드에 연결
+        write_only=True     # 쓰기 전용
     )
 
     class Meta:
         model = Transaction
         fields = [
-            'id', 'category', 'category_id', 'transaction_type', 'amount', 'remarks', 'user_id'
+            'id', 'user', 'amount', 'transaction_type',
+            'category', 'category_id', 'date', 'description',
+            'created_at'
         ]
-        read_only_fields = ['id', 'user_id']  # ID와 사용자 ID는 읽기 전용
+        read_only_fields = ['id', 'user', 'created_at']  # 일부 필드 읽기 전용

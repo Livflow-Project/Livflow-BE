@@ -9,6 +9,7 @@ from .models import Transaction, Category
 from .serializers import TransactionSerializer, CategorySerializer
 
 # 거래 내역 목록 조회 및 생성 클래스
+# 거래 내역 목록 조회 및 생성 클래스
 class TransactionListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -17,7 +18,7 @@ class TransactionListCreateView(APIView):
         responses={200: TransactionSerializer(many=True)},
     )
     def get(self, request):
-        transactions = Transaction.objects.filter(user_id=request.user.id)
+        transactions = Transaction.objects.filter(user=request.user)
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
 
@@ -26,28 +27,31 @@ class TransactionListCreateView(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'category': openapi.Schema(type=openapi.TYPE_INTEGER, description='카테고리 ID'),
+                'category_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='카테고리 ID'),
                 'transaction_type': openapi.Schema(type=openapi.TYPE_STRING, description='거래 유형 (예: income, expense)'),
                 'amount': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='거래 금액'),
-                'remarks': openapi.Schema(type=openapi.TYPE_STRING, description='거래 비고'),
+                'date': openapi.Schema(type=openapi.FORMAT_DATE, description='거래 날짜 (YYYY-MM-DD)'),
+                'description': openapi.Schema(type=openapi.TYPE_STRING, description='거래 설명 (선택 사항)'),
             },
-            required=['category', 'transaction_type', 'amount'],
+            required=['category_id', 'transaction_type', 'amount', 'date'],
         ),
         responses={201: TransactionSerializer, 400: "잘못된 요청 데이터"},
     )
     def post(self, request):
         transaction_data = {
-            "user_id": request.user.id,
-            "category": request.data.get("category"),
+            "user": request.user.id,
+            "category": request.data.get("category_id"),
             "transaction_type": request.data.get("transaction_type"),
             "amount": request.data.get("amount"),
-            "remarks": request.data.get("remarks")
+            "date": request.data.get("date"),
+            "description": request.data.get("description")
         }
         serializer = TransactionSerializer(data=transaction_data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # 특정 거래 내역 조회, 수정 및 삭제 클래스
 class TransactionDetailView(APIView):
