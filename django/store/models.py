@@ -3,6 +3,7 @@ from django.db import models
 from users.models import CustomUser
 from django.utils.timezone import now
 
+
 # 카테고리 모델 정의
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)  # 중복 방지
@@ -19,7 +20,7 @@ class Transaction(models.Model):
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)  # UUID 사용
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='store_transactions')  # 사용자와 연결
-    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='transactions')  # 가게와 연결
+    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='transactions', default=1)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 금액
     transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)  # 수입 또는 지출 구분
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)  # 카테고리와 연결
