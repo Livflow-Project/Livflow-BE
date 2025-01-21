@@ -167,12 +167,12 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django_error.log'),  # 경로를 BASE_DIR 기준으로 설정
-            'formatter': 'verbose',
-        },
+        # 'file': {
+        #     'level': 'ERROR',
+        #     'class': 'logging.FileHandler',
+        #     'filename': os.path.join(BASE_DIR, 'logs', 'django_error.log'),  # 경로를 BASE_DIR 기준으로 설정
+        #     'formatter': 'verbose',
+        # },
     },
     'loggers': {
         'django': {
