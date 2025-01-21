@@ -26,10 +26,10 @@ COPY pyproject.toml poetry.lock ./
 # Copy the Django application
 COPY django/ /app/django/
 
-# Create logs directory with full path
-RUN mkdir -p /home/joo/back-end-coffee/django/logs && \
-    touch /home/joo/back-end-coffee/django/logs/django_error.log && \
-    chmod -R 777 /home/joo/back-end-coffee/django/logs
+# Create logs directory and set permissions
+RUN mkdir -p /app/django/logs && \
+    touch /app/django/logs/django_error.log && \
+    chmod -R 777 /app/django/logs
 
 # Install dependencies
 RUN poetry config virtualenvs.create false && \
@@ -41,6 +41,8 @@ WORKDIR /app/django
 # Collect static files
 RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
+# Expose the application port
 EXPOSE 8000
 
+# Start the application with Gunicorn
 CMD ["gunicorn", "livflow.wsgi:application", "--bind", "0.0.0.0:8000"]
