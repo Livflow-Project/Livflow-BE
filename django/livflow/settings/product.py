@@ -160,28 +160,34 @@ REST_FRAMEWORK = {
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        # 'file': {
-        #     'level': 'ERROR',
-        #     'class': 'logging.FileHandler',
-        #     'filename': os.path.join(BASE_DIR, 'logs', 'django_error.log'),  # 경로를 BASE_DIR 기준으로 설정
-        #     'formatter': 'verbose',
-        # },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-    },
+    'handlers': {},
+    'loggers': {},
 }
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'verbose': {
+#             'format': '{levelname} {asctime} {module} {message}',
+#             'style': '{',
+#         },
+#     },
+#     'handlers': {
+#         # 'file': {
+#         #     'level': 'ERROR',
+#         #     'class': 'logging.FileHandler',
+#         #     'filename': os.path.join(BASE_DIR, 'logs', 'django_error.log'),  # 경로를 BASE_DIR 기준으로 설정
+#         #     'formatter': 'verbose',
+#         # },
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['file'],
+#             'level': 'ERROR',
+#             'propagate': True,
+#         },
+#     },
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
