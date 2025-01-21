@@ -1,158 +1,135 @@
+from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Store
+from .models import Store, Transaction
 from .serializers import StoreSerializer
-from ledger.models import Transaction
 
-# 모든 가게 목록 조회 및 새로운 가게 등록
 class StoreListView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
-    # 모든 가게 목록 조회
+    @swagger_auto_schema(
+        operation_summary="모든 가게 목록 조회",
+        operation_description="현재 로그인한 사용자의 모든 가게 목록을 반환합니다.",
+        responses={200: "가게 목록 반환", 401: "로그인이 필요합니다."}
+    )
     def get(self, request):
-        # 로그인 여부 확인
-        if not request.user.is_authenticated:
-            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
-
-        stores = Store.objects.filter(user_id=request.user.id)
+        stores = Store.objects.filter(user=request.user)
         store_list = []
 
         for store in stores:
-            store_serializer = StoreSerializer(store)
+            transactions = Transaction.objects.filter(
+                user=request.user, store=store,
+                date__year=now().year, date__month=now().month
+            ).values('transaction_type', 'category__name').annotate(total=models.Sum('amount'))
 
-            # 가계부 정보 가져오기 (수입/지출을 카테고리별로 합산)
-            transactions = Transaction.objects.filter(user_id=request.user.id, store_id=store.id)
-            income_totals = {}
-            expense_totals = {}
-
-            for transaction in transactions:
-                category_name = transaction.category.name
-                if transaction.transaction_type == "income":
-                    income_totals[category_name] = income_totals.get(category_name, 0) + transaction.amount
-                elif transaction.transaction_type == "expense":
-                    expense_totals[category_name] = expense_totals.get(category_name, 0) + transaction.amount
+            chart = [
+                {"type": t["transaction_type"], "category": t["category__name"], "cost": t["total"]}
+                for t in transactions
+            ]
 
             store_data = {
-                "store": store_serializer.data,
-                "category_totals": {
-                    "income": income_totals,
-                    "expense": expense_totals,
-                }
+                "store_id": str(store.id),
+                "name": store.name,
+                "address": store.address,
+                "chart": chart
             }
-
             store_list.append(store_data)
 
         return Response(store_list)
 
     @swagger_auto_schema(
+        operation_summary="새 가게 등록",
+        operation_description="새로운 가게를 등록합니다.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
                 'name': openapi.Schema(type=openapi.TYPE_STRING, description='가게 이름'),
-                'address': openapi.Schema(type=openapi.TYPE_STRING, description='가게 주소'),
+                'address': openapi.Schema(type=openapi.TYPE_STRING, description='가게 주소 (선택)'),
             },
-            required=['name', 'address'],
-        )
+            required=['name'],
+        ),
+        responses={201: "가게 등록 성공", 400: "유효성 검사 실패"}
     )
-    # 새로운 가게 등록
     def post(self, request):
-        # 로그인 여부 확인
-        if not request.user.is_authenticated:
-            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
-
-        store_data = {
-            "name": request.data.get("name"),
-            "address": request.data.get("address")
-        }
-        serializer = StoreSerializer(data=store_data)
-        
+        serializer = StoreSerializer(data=request.data)
         if serializer.is_valid():
-            # Store 인스턴스 생성 시 user를 자동으로 추가
-            serializer.save(user=request.user)  # 인증된 사용자로 user 필드를 설정
+            serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# 특정 가게 조회, 수정 및 삭제 클래스
+
 class StoreDetailView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
-    # 특정 가게 조회 (가계부 정보 포함)
+    @swagger_auto_schema(
+        operation_summary="특정 가게 조회",
+        operation_description="가게 ID를 이용해 해당 가게 정보를 조회합니다.",
+        responses={200: "가게 정보 반환", 404: "가게를 찾을 수 없습니다."}
+    )
     def get(self, request, id):
-        # 로그인 여부 확인
-        if not request.user.is_authenticated:
-            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
-
         try:
-            store = Store.objects.get(id=id, user_id=request.user.id)
+            store = Store.objects.get(id=id, user=request.user)
         except Store.DoesNotExist:
             return Response({"detail": "해당 가게를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        store_serializer = StoreSerializer(store)
 
-        # 가계부 정보 가져오기 (수입/지출을 카테고리별로 합산)
-        transactions = Transaction.objects.filter(user_id=request.user.id, store_id=id)
-        income_totals = {}
-        expense_totals = {}
-        
-        for transaction in transactions:
-            category_name = transaction.category.name
-            if transaction.transaction_type == "income":
-                income_totals[category_name] = income_totals.get(category_name, 0) + transaction.amount
-            elif transaction.transaction_type == "expense":
-                expense_totals[category_name] = expense_totals.get(category_name, 0) + transaction.amount
+        transactions = Transaction.objects.filter(
+            user=request.user, store=store,
+            date__year=now().year, date__month=now().month
+        ).values('transaction_type', 'category__name').annotate(total=models.Sum('amount'))
+
+        chart = [
+            {"type": t["transaction_type"], "category": t["category__name"], "cost": t["total"]}
+            for t in transactions
+        ]
 
         store_data = {
-            "store": store_serializer.data,
-            "category_totals": {
-                "income": income_totals,
-                "expense": expense_totals,
-            }
+            "store_id": str(store.id),
+            "name": store.name,
+            "address": store.address,
+            "chart": chart
         }
+
         return Response(store_data)
 
     @swagger_auto_schema(
+        operation_summary="가게 정보 수정",
+        operation_description="가게 ID를 이용해 가게 정보를 수정합니다.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
                 'name': openapi.Schema(type=openapi.TYPE_STRING, description='가게 이름'),
-                'address': openapi.Schema(type=openapi.TYPE_STRING, description='가게 주소'),
+                'address': openapi.Schema(type=openapi.TYPE_STRING, description='가게 주소 (선택)'),
             },
-            required=['name', 'address'],
-        )
+            required=['name'],
+        ),
+        responses={200: "가게 수정 성공", 400: "유효성 검사 실패", 404: "가게를 찾을 수 없습니다."}
     )
-    # 가게 정보 수정
     def put(self, request, id):
-        # 로그인 여부 확인
-        if not request.user.is_authenticated:
-            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
-
         try:
-            store = Store.objects.get(id=id, user_id=request.user.id)
+            store = Store.objects.get(id=id, user=request.user)
         except Store.DoesNotExist:
             return Response({"detail": "해당 가게를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        data = {
-            "name": request.data.get("name"),
-            "address": request.data.get("address")
-        }
-        serializer = StoreSerializer(store, data=data, partial=True)
+
+        serializer = StoreSerializer(store, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # 가게 삭제
+    @swagger_auto_schema(
+        operation_summary="가게 삭제",
+        operation_description="가게 ID를 이용해 해당 가게를 삭제합니다.",
+        responses={204: "가게 삭제 성공", 404: "가게를 찾을 수 없습니다."}
+    )
     def delete(self, request, id):
-        # 로그인 여부 확인
-        if not request.user.is_authenticated:
-            return Response({"detail": "로그인이 필요합니다."}, status=status.HTTP_401_UNAUTHORIZED)
-
         try:
-            store = Store.objects.get(id=id, user_id=request.user.id)
+            store = Store.objects.get(id=id, user=request.user)
         except Store.DoesNotExist:
             return Response({"detail": "해당 가게를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
         store.delete()
         return Response({"message": "가게가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
