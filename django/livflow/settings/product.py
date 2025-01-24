@@ -65,14 +65,26 @@ ROOT_URLCONF = 'livflow.urls'
 WSGI_APPLICATION = 'livflow.wsgi.application'
 
 # Database configuration
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DB_NAME'),
+#         'USER': os.getenv('DB_USER'),
+#         'PASSWORD': os.getenv('DB_PASSWORD'),
+#         'HOST': os.getenv('DB_HOST'),
+#         'PORT': os.getenv('DB_PORT', '5432'),
+#     }
+# }
+
+# Database configuration (직접 입력)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'NAME': 'livflow',  # ← 직접 입력
+        'USER': 'joo',  # ← 직접 입력
+        'PASSWORD': 'livflow',  # ← 직접 입력
+        'HOST': 'db01',  # ← 직접 입력
+        'PORT': '5432',  # ← 직접 입력
     }
 }
 
