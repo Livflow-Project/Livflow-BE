@@ -14,15 +14,15 @@ services:
       - ./poetry.lock:/app/poetry.lock:ro
       - ./django:/app/django
       - /home/joo/back-end-coffee/django/logs:/home/joo/back-end-coffee/django/logs 
-      # - static_volume:/app/django/static
-      # - media_volume:/app/django/media
-      - static_volume:/app/staticfiles  # 경로 수정
+      - static_volume:/app/staticfiles
       - media_volume:/app/media  
     ports:
       - "8000:8000"
     networks:
       - app-network
     env_file: .env
+    depends_on:
+      - redis  # Redis 컨테이너가 먼저 실행되도록 설정
 
   nginx:
     image: nginx:alpine
@@ -32,9 +32,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /etc/letsencrypt:/etc/letsencrypt
-      - ./certbot:/var/www/certbot  # 인증서 발급을 위한 볼륨 추가
-      # - static_volume:/app/static
-      - static_volume:/app/staticfiles 
+      - ./certbot:/var/www/certbot
+      - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
       - web
@@ -55,6 +54,16 @@ services:
     networks:
       - app-network
     env_file: .env
+
+  redis:
+    image: redis:latest  
+    container_name: redis01  # 컨테이너 이름 지정
+    restart: always  # 컨테이너가 죽으면 자동 재시작
+    ports:
+      - "6379:6379"  # Redis 기본 포트
+    networks:
+      - app-network
+    command: redis-server --appendonly yes  # 영구 저장 모드(AOF) 활성화
 
   portainer:
     image: portainer/portainer-ce:latest
