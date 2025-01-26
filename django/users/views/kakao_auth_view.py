@@ -45,7 +45,9 @@ class KakaoExchangeCodeForToken(APIView):
                 return JsonResponse({"error": "Kakao ID not found"}, status=400)
 
             # 이메일만 사용
-            email = f"kakao_{kakao_id}@livflow.co.kr"
+            email = user_info.get("email")
+            if not email:
+                return JsonResponse({"error": "Email not found in user info"}, status=400)
 
             # 사용자 생성 또는 가져오기
             user, created = User.objects.get_or_create(email=email)

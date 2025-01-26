@@ -51,8 +51,6 @@ class NaverExchangeCodeForToken(APIView):
 
             user_data = {
                 "email": email,
-                "profile_image": user_info.get("profile_image"),
-                "nickname": generate_random_nickname(),
             }
             user, created = User.objects.get_or_create(email=email, defaults=user_data)
             # jwt 토큰 생성
