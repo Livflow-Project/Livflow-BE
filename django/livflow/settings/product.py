@@ -76,6 +76,16 @@ DATABASES = {
     }
 }
 
+# Redis
+# REDIS_HOST = "localhost"
+# REDIS_PORT = 6379
+# REDIS_DB = 0
+
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")  # Docker 컨테이너에서는 "redis"
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+REDIS_DB = int(os.getenv("REDIS_DB", 0))  # 기본 DB 인덱스
+
 
 # Static files
 STATIC_URL = '/static/'
