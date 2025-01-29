@@ -64,6 +64,7 @@ services:
     networks:
       - app-network
     command: redis-server --appendonly yes  # 영구 저장 모드(AOF) 활성화
+    env_file: .env
 
   portainer:
     image: portainer/portainer-ce:latest
