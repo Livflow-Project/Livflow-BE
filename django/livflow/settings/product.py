@@ -14,7 +14,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=f57%wq3lx)q4i6efhnbt!(7d5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['api.livflow.co.kr', 'www.livflow.co.kr', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['api.livflow.co.kr', 'www.livflow.co.kr', 'localhost', '127.0.0.1','http://localhost:5173']
 
 # Application definition
 DEFAULT_DJANGO_APPS = [
@@ -100,11 +100,13 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.livflow.co.kr",
     "https://api.livflow.co.kr",
     "https://api.livflow.co.kr:8443",
+    "http://localhost:5173"
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://www.livflow.co.kr",
     "https://api.livflow.co.kr",
     "https://api.livflow.co.kr:8443",
+    "http://localhost:5173"
 ]
 
 # Security settings
