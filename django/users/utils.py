@@ -18,7 +18,8 @@ def hash_token(token):
 def store_refresh_token(user_id, refresh_token, expires_in):
     """Redis에 해시된 리프레시 토큰 저장"""
     hashed_token = hash_token(refresh_token)
-    redis_client.setex(f"refresh_token:{user_id}", expires_in, hashed_token)
+    redis_client.setex(f"refresh_token:{user_id}", int(expires_in), hashed_token)  
+
 
 # ✅ 리프레시 토큰 조회 (해시된 토큰 반환)
 def get_refresh_token(user_id):

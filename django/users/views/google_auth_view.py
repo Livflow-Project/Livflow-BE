@@ -21,10 +21,15 @@ class GoogleExchangeCodeForToken(APIView):
         token_endpoint = "https://oauth2.googleapis.com/token"
         data = {
             "code": code,
-            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-            "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+            "client_id": "191567703208-tp56ppl7hokenh12v8pibctruiapqm9j.apps.googleusercontent.com",
+            "client_secret": "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",
+            "redirect_uri": "http://localhost:5173/auth/login/callback/google",
             "grant_type": "authorization_code",
+            # "code": code,
+            # "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+            # "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+            # "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+            # "grant_type": "authorization_code",
         }
 
         try:
@@ -55,7 +60,8 @@ class GoogleExchangeCodeForToken(APIView):
             refresh_token = str(refresh)
 
             # Redis에 리프레시 토큰 저장
-            store_refresh_token(user.id, refresh_token, settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
+            expires_in = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())  # ✅ 정수로 변환
+            store_refresh_token(user.id, refresh_token, expires_in)
 
             response_data = {
                 "access": access_token,
@@ -69,7 +75,7 @@ class GoogleExchangeCodeForToken(APIView):
                 domain=".livflow.co.kr",
                 httponly=True,
                 secure=settings.SESSION_COOKIE_SECURE,
-                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+                max_age=int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()),  # ✅ 정수로 변환
                 samesite="Strict",
             )
 
