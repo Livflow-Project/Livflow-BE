@@ -1,6 +1,7 @@
 import os
 import requests
 import logging
+from django.utils.text import slugify
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -24,7 +25,6 @@ class GoogleExchangeCodeForToken(APIView):
     def post(self, request, *args, **kwargs):
         logger.info("🔍 Google OAuth 요청 시작")
         
-        # 1️⃣ ✅ 요청에서 `code` 확인
         code = request.data.get("code")
         logger.info(f"📌 받은 Authorization Code: {code}")
 
@@ -42,22 +42,18 @@ class GoogleExchangeCodeForToken(APIView):
         }
 
         try:
-            # 2️⃣ ✅ Google OAuth 서버에 요청
-            logger.info("🛰️ Google OAuth 서버에 토큰 요청 중...")
             response = requests.post(token_endpoint, data=data, headers={"Accept": "application/x-www-form-urlencoded"})
             logger.info(f"📌 Google OAuth 응답 상태 코드: {response.status_code}")
 
-            response.raise_for_status()  # ❌ 여기서 오류 발생 가능!
+            response.raise_for_status()
             token_data = response.json()
             logger.info(f"📌 Google OAuth Token Response: {token_data}")
 
-            # 3️⃣ ✅ Access Token 획득
             access_token = token_data.get("access_token")
             if not access_token:
                 logger.error("❌ Google에서 Access Token을 가져오지 못했습니다.")
                 return JsonResponse({"error": "Failed to obtain access token"}, status=400)
 
-            # 4️⃣ ✅ 유저 정보 요청
             userinfo_endpoint = "https://www.googleapis.com/oauth2/v3/userinfo"
             headers = {"Authorization": f"Bearer {access_token}"}
             user_info_response = requests.get(userinfo_endpoint, headers=headers)
@@ -65,36 +61,39 @@ class GoogleExchangeCodeForToken(APIView):
             user_info = user_info_response.json()
             logger.info(f"📌 Google User Info Response: {user_info}")
 
-            # 5️⃣ ✅ 이메일 확인
             email = user_info.get("email")
+            full_name = user_info.get("name", "").strip()
+
             if not email:
                 logger.error("❌ Google User Info에 이메일 정보가 없습니다.")
                 return JsonResponse({"error": "Email not found in user info"}, status=400)
 
-            # 6️⃣ ✅ 유저 생성 또는 가져오기
-            user, created = User.objects.get_or_create(email=email)
+            # ✅ `username`이 필요하므로 자동 생성 (이메일의 '@' 앞 부분 사용)
+            base_username = slugify(email.split("@")[0])
+            username = base_username
+
+            # ✅ 이미 존재하는 `username`이 있으면 숫자 추가해서 중복 방지
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            # ✅ `get_or_create()` 사용 시, `username`을 명시적으로 지정
+            user, created = User.objects.get_or_create(email=email, defaults={"username": username, "first_name": full_name})
             logger.info(f"✅ User 정보: {user} (Created: {created})")
 
-            # 7️⃣ ✅ JWT 토큰 생성
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
             logger.info("✅ JWT 토큰 생성 완료")
 
-            # 8️⃣ ✅ Redis에 Refresh Token 저장
-            try:
-                expires_in = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())  
-                store_refresh_token(user.id, refresh_token, expires_in)
-                logger.info(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
-            except Exception as e:
-                logger.error(f"❌ Redis 저장 중 오류 발생: {str(e)}")
+            expires_in = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())  
+            store_refresh_token(user.id, refresh_token, expires_in)
+            logger.info(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
 
-            response_data = {
-                "access": access_token,
-            }
+            response_data = {"access": access_token}
             response = JsonResponse(response_data)
 
-            # 9️⃣ ✅ 쿠키 설정
             response.set_cookie(
                 "access_token",
                 access_token,
