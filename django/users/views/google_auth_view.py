@@ -23,7 +23,7 @@ class GoogleExchangeCodeForToken(APIView):
             "code": code,
             "client_id": "191567703208-tp56ppl7hokenh12v8pibctruiapqm9j.apps.googleusercontent.com",
             "client_secret": "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",
-            "redirect_uri": "http://localhost:5173/auth/login/callback/google",
+            "redirect_uri": "https://www.livflow.co.kr/auth/login/callback/google",
             # "code": code,
             # "client_id": os.getenv("GOOGLE_CLIENT_ID"),
             # "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
