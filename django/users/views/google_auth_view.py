@@ -1,17 +1,20 @@
 import os
 import requests
+import logging
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
-from users.utils import store_refresh_token  # utils.py에서 가져오기
-from datetime import timedelta
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from users.utils import store_refresh_token 
 
 
 User = get_user_model()
 
+@method_decorator(csrf_exempt, name='dispatch')
 class GoogleExchangeCodeForToken(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]

@@ -101,7 +101,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://api.livflow.co.kr",
     "https://api.livflow.co.kr:8443",
     "http://localhost:5173",
-    "http://localhost:8000" ,
+    "http://localhost:8000",
 ]
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -117,7 +117,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://api.livflow.co.kr",
     "https://api.livflow.co.kr:8443",
     "http://localhost:5173",
-    "http://localhost:8000" ,
+    "http://localhost:8000",
 ]
 
 # Security settings
