@@ -24,12 +24,11 @@ class GoogleExchangeCodeForToken(APIView):
             "client_id": "191567703208-tp56ppl7hokenh12v8pibctruiapqm9j.apps.googleusercontent.com",
             "client_secret": "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",
             "redirect_uri": "http://localhost:5173/auth/login/callback/google",
-            "grant_type": "authorization_code",
             # "code": code,
             # "client_id": os.getenv("GOOGLE_CLIENT_ID"),
             # "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
             # "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
-            # "grant_type": "authorization_code",
+            "grant_type": "authorization_code",
         }
 
         try:
