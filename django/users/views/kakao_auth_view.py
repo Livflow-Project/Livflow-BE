@@ -64,20 +64,23 @@ class KakaoExchangeCodeForToken(APIView):
             logger.info(f"📌 Kakao User Info Response: {user_info}")
 
             kakao_account = user_info.get("kakao_account", {})
+
+            # ✅ 디버깅 추가: kakao_account가 존재하는지 확인
+            if not kakao_account:
+                logger.error("❌ Kakao 응답에서 kakao_account를 찾을 수 없습니다.")
+                return JsonResponse({"error": "Invalid Kakao response, kakao_account missing"}, status=400)
+
             email = kakao_account.get("email")
-            full_name = kakao_account.get("profile", {}).get("nickname", "").strip()
+            kakao_id = str(user_info.get("id"))
+            nickname = kakao_account.get("profile", {}).get("nickname", "")
 
-            # ✅ 이메일 제공 여부 확인
-            if kakao_account.get("email_needs_agreement"):
-                logger.warning("⚠️ 사용자가 이메일 제공에 동의하지 않았습니다.")
-                return JsonResponse({"error": "User did not agree to share email"}, status=400)
-
+            # ✅ 이메일이 없으면 `kakao_ID@kakao.com` 형태로 가짜 이메일 생성
             if not email:
-                logger.error("❌ Kakao User Info에 이메일 정보가 없습니다.")
-                return JsonResponse({"error": "Email not found in user info"}, status=400)
+                email = f"kakao_{kakao_id}@kakao.com"
+                logger.warning(f"⚠️ 이메일 없음 → {email} 가짜 이메일 사용")
 
             # ✅ `username` 자동 생성 (이메일이 없는 경우 Kakao ID 사용)
-            base_username = slugify(email.split("@")[0]) if email else f"kakao_{user_info['id']}"
+            base_username = slugify(email.split("@")[0]) if email else f"kakao_{kakao_id}"
             username = base_username
 
             # ✅ 이미 존재하는 `username`이 있으면 숫자 추가해서 중복 방지
@@ -89,7 +92,7 @@ class KakaoExchangeCodeForToken(APIView):
             # ✅ `get_or_create()` 사용 시, `username`을 명시적으로 지정
             user, created = User.objects.get_or_create(
                 email=email,
-                defaults={"username": username, "first_name": full_name}
+                defaults={"username": username, "first_name": nickname}
             )
             logger.info(f"✅ User 정보: {user} (Created: {created})")
 
