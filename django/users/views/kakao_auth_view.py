@@ -22,9 +22,9 @@ class KakaoExchangeCodeForToken(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         logger.info("🔍 Kakao OAuth 요청 시작")
-        
+
         code = request.data.get("code")
         logger.info(f"📌 받은 Authorization Code: {code}")
 
@@ -36,13 +36,13 @@ class KakaoExchangeCodeForToken(APIView):
         data = {
             "grant_type": "authorization_code",
             "client_id": os.getenv("KAKAO_CLIENT_ID"),
-            "client_secret": os.getenv("KAKAO_CLIENT_SECRET"),
+            "client_secret": os.getenv("KAKAO_CLIENT_SECRET"),  
             "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"),
             "code": code,
         }
 
         try:
-            # ✅ Kakao에서 액세스 토큰 요청
+            # ✅ 카카오에서 액세스 토큰 요청
             response = requests.post(token_endpoint, data=data)
             logger.info(f"📌 Kakao OAuth 응답 상태 코드: {response.status_code}")
 
@@ -55,7 +55,7 @@ class KakaoExchangeCodeForToken(APIView):
                 logger.error("❌ Kakao에서 Access Token을 가져오지 못했습니다.")
                 return JsonResponse({"error": "Failed to obtain access token"}, status=400)
 
-            # ✅ Kakao에서 유저 정보 가져오기
+            # ✅ 카카오에서 사용자 정보 가져오기
             userinfo_endpoint = "https://kapi.kakao.com/v2/user/me"
             headers = {"Authorization": f"Bearer {access_token}"}
             user_info_response = requests.get(userinfo_endpoint, headers=headers)
@@ -67,12 +67,17 @@ class KakaoExchangeCodeForToken(APIView):
             email = kakao_account.get("email")
             full_name = kakao_account.get("profile", {}).get("nickname", "").strip()
 
+            # ✅ 이메일 제공 여부 확인
+            if kakao_account.get("email_needs_agreement"):
+                logger.warning("⚠️ 사용자가 이메일 제공에 동의하지 않았습니다.")
+                return JsonResponse({"error": "User did not agree to share email"}, status=400)
+
             if not email:
                 logger.error("❌ Kakao User Info에 이메일 정보가 없습니다.")
                 return JsonResponse({"error": "Email not found in user info"}, status=400)
 
-            # ✅ `username`이 필요하므로 자동 생성 (이메일의 '@' 앞 부분 사용)
-            base_username = slugify(email.split("@")[0])
+            # ✅ `username` 자동 생성 (이메일이 없는 경우 Kakao ID 사용)
+            base_username = slugify(email.split("@")[0]) if email else f"kakao_{user_info['id']}"
             username = base_username
 
             # ✅ 이미 존재하는 `username`이 있으면 숫자 추가해서 중복 방지
@@ -82,7 +87,10 @@ class KakaoExchangeCodeForToken(APIView):
                 counter += 1
 
             # ✅ `get_or_create()` 사용 시, `username`을 명시적으로 지정
-            user, created = User.objects.get_or_create(email=email, defaults={"username": username, "first_name": full_name})
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={"username": username, "first_name": full_name}
+            )
             logger.info(f"✅ User 정보: {user} (Created: {created})")
 
             refresh = RefreshToken.for_user(user)
