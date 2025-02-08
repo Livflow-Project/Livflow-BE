@@ -35,9 +35,9 @@ class GoogleExchangeCodeForToken(APIView):
         token_endpoint = "https://oauth2.googleapis.com/token"
         data = {
             "code": code,
-            "client_id": "191567703208-tp56ppl7hokenh12v8pibctruiapqm9j.apps.googleusercontent.com",
-            "client_secret": "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",
-            "redirect_uri": "https://www.livflow.co.kr/auth/login/callback/google",
+            "client_id":  os.getenv("GOOGLE_CLIENT_ID"),
+            "client_secret":  os.getenv("GOOGLE_CLIENT_SECRET"),
+            "redirect_uri":  os.getenv("GOOGLE_REDIRECT_URI"),
             "grant_type": "authorization_code",
         }
 
