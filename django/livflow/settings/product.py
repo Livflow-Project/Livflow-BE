@@ -235,6 +235,12 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.CustomUser'
+ACCOUNT_AUTHENTICATION_METHOD = "email"  # 로그인 시 email 사용
+ACCOUNT_USERNAME_REQUIRED = False  # username 필드 사용 안 함
+ACCOUNT_EMAIL_REQUIRED = True  # email 필수
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # ✅ username 필드 비활성화
+
+
 
 
 TEMPLATES = [
