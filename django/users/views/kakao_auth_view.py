@@ -1,7 +1,6 @@
 import os
 import requests
 import logging
-from django.utils.text import slugify
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -85,20 +84,9 @@ class KakaoExchangeCodeForToken(APIView):
                 logger.error("❌ Kakao User Info에 이메일 정보가 없습니다.")
                 return JsonResponse({"error": "Email not found in user info"}, status=400)
 
-            # ✅ `username` 자동 생성 (이메일이 없는 경우 Kakao ID 사용)
-            base_username = slugify(email.split("@")[0]) if email else f"kakao_{user_info['id']}"
-            username = base_username
-
-            # ✅ 이미 존재하는 `username`이 있으면 숫자 추가해서 중복 방지
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-
-            # ✅ `get_or_create()` 사용 시, `username`을 명시적으로 지정
+            # ✅ `email`을 기준으로 사용자 찾기
             user, created = User.objects.get_or_create(
-                email=email,
-                defaults={"username": username}
+                email=email
             )
             logger.info(f"✅ User 정보: {user} (Created: {created})")
 
