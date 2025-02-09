@@ -7,7 +7,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db.models import Sum, Count
 
-from .models import Store, Transaction, Category
+from store.models import Store
+from .models import Transaction, Category
 from .serializers import TransactionSerializer, CategorySerializer
 
 
