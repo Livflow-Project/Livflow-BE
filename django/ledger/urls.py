@@ -14,6 +14,6 @@ urlpatterns = [
     path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),
     path('categories/<int:id>/', CategoryDetailView.as_view(), name='category-detail'),
 
-    path('ledger/<int:storeId>/calendar/', LedgerCalendarView.as_view(), name='ledger-calendar'),
-    path('ledger/<int:storeId>/transactions/', LedgerTransactionListView.as_view(), name='ledger-transactions'),
+    path('<int:storeId>/calendar/', LedgerCalendarView.as_view(), name='ledger-calendar'),
+    path('<int:storeId>/transactions/', LedgerTransactionListView.as_view(), name='ledger-transactions'),
 ]
