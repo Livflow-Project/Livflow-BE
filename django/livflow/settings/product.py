@@ -184,6 +184,25 @@ REST_FRAMEWORK = {
     ],
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Livflow API',
+    'DESCRIPTION': 'Livflow 가계부, 단가계산기 API 입니다.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,  # ✅ 인증 유지 (Swagger 재시작 후에도 유지됨)
+    },
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': 'Enter token with "Bearer " prefix, e.g., Bearer <your_token>',
+        }
+    },
+}
+
+
 # Logging configuration
 LOGGING = {
     'version': 1,
