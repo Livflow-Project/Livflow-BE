@@ -1,6 +1,7 @@
 import os
 import requests
 import logging
+from django.db import transaction
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -10,6 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from users.utils import store_refresh_token  
+from allauth.socialaccount.models import SocialAccount
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -67,22 +69,37 @@ class GoogleExchangeCodeForToken(APIView):
                 logger.error("❌ Google User Info에 이메일 정보가 없습니다.")
                 return JsonResponse({"error": "Email not found in user info"}, status=400)
 
-            # ✅ `username`을 제거하고 `email`을 기준으로 사용자 찾기
-            user, created = User.objects.get_or_create(email=email, defaults={"first_name": full_name})
-            logger.info(f"✅ User 정보: {user} (Created: {created})")
+            # ✅ 트랜잭션을 사용하여 User 및 SocialAccount 저장
+            with transaction.atomic():
+                user, created = User.objects.get_or_create(email=email, defaults={"first_name": full_name})
+                logger.info(f"✅ User 정보: {user} (Created: {created})")
 
+                # ✅ SocialAccount가 존재하지 않으면 생성
+                social_account, social_created = SocialAccount.objects.get_or_create(
+                    user=user,
+                    provider="google",
+                    defaults={"uid": email, "extra_data": user_info}
+                )
+
+                if social_created:
+                    logger.info(f"✅ Google 소셜 계정 저장 완료: {user.email}")
+
+            # ✅ JWT 토큰 생성
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
             logger.info("✅ JWT 토큰 생성 완료")
 
+            # ✅ Redis에 Refresh Token 저장
             expires_in = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())  
             store_refresh_token(user.id, refresh_token, expires_in)
             logger.info(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
 
+            # ✅ 응답 데이터 구성
             response_data = {"access": access_token}
             response = JsonResponse(response_data)
 
+            # ✅ 쿠키에 액세스 토큰 저장
             response.set_cookie(
                 "access_token",
                 access_token,
