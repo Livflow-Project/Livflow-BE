@@ -19,6 +19,7 @@ schema_view = get_schema_view(
    ),
    public=True,
    permission_classes=(permissions.AllowAny,),
+   url="https://api.livflow.co.kr:8443", 
 )
 
 # URL 패턴
