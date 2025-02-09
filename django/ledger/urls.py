@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     TransactionListCreateView, TransactionDetailView,
-    CategoryListCreateView, CategoryDetailView
+    CategoryListCreateView, CategoryDetailView,
+    LedgerCalendarView, LedgerTransactionListView,
 )
 
 urlpatterns = [
@@ -12,4 +13,7 @@ urlpatterns = [
     # 카테고리 관련 URL
     path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),
     path('categories/<int:id>/', CategoryDetailView.as_view(), name='category-detail'),
+
+    path('ledger/<int:storeId>/calendar/', LedgerCalendarView.as_view(), name='ledger-calendar'),
+    path('ledger/<int:storeId>/transactions/', LedgerTransactionListView.as_view(), name='ledger-transactions'),
 ]

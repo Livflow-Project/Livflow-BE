@@ -5,10 +5,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Transaction, Category
+from django.db.models import Sum, Count
+
+from .models import Store, Transaction, Category
 from .serializers import TransactionSerializer, CategorySerializer
 
-# 거래 내역 목록 조회 및 생성 클래스
+
 # 거래 내역 목록 조회 및 생성 클래스
 class TransactionListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -154,3 +156,89 @@ class CategoryDetailView(APIView):
         category = get_object_or_404(Category, id=id)
         category.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+# 1️⃣ 월별 차트 및 거래 여부 조회
+class LedgerCalendarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="가게 월별 차트 및 거래 여부 조회",
+        operation_description="월별 총 수입, 지출 금액과 각 날짜별 거래 여부를 반환합니다.",
+        manual_parameters=[
+            openapi.Parameter('year', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('month', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
+        ],
+        responses={200: "월별 차트 및 거래 여부 반환", 404: "가게를 찾을 수 없습니다."}
+    )
+    def get(self, request, storeId):
+        year = request.GET.get('year')
+        month = request.GET.get('month')
+
+        if not year or not month or not year.isdigit() or not month.isdigit():
+            return Response({"detail": "year와 month는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        year, month = int(year), int(month)
+
+        store = get_object_or_404(Store, id=storeId, user=request.user)
+
+        # 월별 수입/지출 차트 데이터
+        chart_data = Transaction.objects.filter(store=store, date__year=year, date__month=month)\
+            .values('transaction_type').annotate(total=Sum('amount'))
+
+        chart = [{"type": t["transaction_type"], "total": t["total"]} for t in chart_data]
+
+        # 일별 거래 여부
+        date_data = Transaction.objects.filter(store=store, date__year=year, date__month=month)\
+            .values('date__day').annotate(count=Count('id'))
+
+        date_info = [{"day": d["date__day"], "has_transaction": d["count"] > 0} for d in date_data]
+
+        return Response({"chart": chart, "date_info": date_info}, status=status.HTTP_200_OK)
+
+
+# 2️⃣ 특정 날짜 거래 내역 조회
+class LedgerTransactionListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="특정 날짜 거래 내역 조회",
+        operation_description="가게 ID와 날짜를 입력하여 해당 일의 수입, 지출 내역을 조회합니다.",
+        manual_parameters=[
+            openapi.Parameter('year', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('month', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('day', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
+        ],
+        responses={200: "거래 내역 반환", 404: "가게를 찾을 수 없습니다."}
+    )
+    def get(self, request, storeId):
+        year = request.GET.get('year')
+        month = request.GET.get('month')
+        day = request.GET.get('day')
+
+        if not year or not month or not day or not year.isdigit() or not month.isdigit() or not day.isdigit():
+            return Response({"detail": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        year, month, day = int(year), int(month), int(day)
+
+        store = get_object_or_404(Store, id=storeId, user=request.user)
+
+        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month, date__day=day)\
+            .values('id', 'transaction_type', 'category__name', 'description', 'amount')
+
+        response_data = {
+            "date": f"{year}-{month:02d}-{day:02d}",
+            "transactions": [
+                {
+                    "transaction_id": str(t['id']),
+                    "type": t['transaction_type'],
+                    "category": t['category__name'],
+                    "detail": t['description'],
+                    "cost": t['amount']
+                } for t in transactions
+            ]
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
