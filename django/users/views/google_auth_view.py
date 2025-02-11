@@ -105,10 +105,11 @@ class GoogleExchangeCodeForToken(APIView):
                 access_token,
                 #배포시 수정
                 #domain=".livflow.co.kr",
-                httponly=True,
+                #httponly=True,
+                httponly=False,
                 secure=settings.SESSION_COOKIE_SECURE,
                 max_age=int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()),
-                samesite="Strict",
+                samesite="Lax",
             )
             logger.info("✅ 액세스 토큰을 쿠키에 저장 완료")
 
