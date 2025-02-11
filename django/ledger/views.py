@@ -9,7 +9,7 @@ from django.db.models import Sum, Count
 
 from store.models import Store, Transaction  
 from .models import Category
-from .serializers import TransactionSerializer
+from .serializers import TransactionSerializer, CategorySerializer
 
 
 # 🔹 1️⃣ 거래 내역 목록 조회 & 생성
@@ -99,46 +99,41 @@ class LedgerTransactionDetailView(APIView):
         transaction.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
-
-# 🔹 3️⃣ 특정 날짜의 거래 내역 조회
-class LedgerTransactionByDateView(APIView):  
+# 🔹 4️⃣ 카테고리 목록 조회 & 생성
+class CategoryListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        operation_summary="특정 날짜 거래 내역 조회",
-        manual_parameters=[
-            openapi.Parameter('year', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter('month', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter('day', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, required=True),
-        ],
-        responses={200: "거래 내역 반환", 404: "가게를 찾을 수 없습니다."}
-    )
-    def get(self, request, store_id):
-        year = request.GET.get('year')
-        month = request.GET.get('month')
-        day = request.GET.get('day')
+    def get(self, request):
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+        return Response(serializer.data)
 
-        if not year or not month or not day or not year.isdigit() or not month.isdigit() or not day.isdigit():
-            return Response({"detail": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request):
+        serializer = CategorySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        year, month, day = int(year), int(month), int(day)
 
-        store = get_object_or_404(Store, id=store_id, user=request.user)
+# 🔹 5️⃣ 특정 카테고리 조회, 수정, 삭제
+class CategoryDetailView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month, date__day=day)\
-            .values('id', 'transaction_type', 'category__name', 'description', 'amount')
+    def get(self, request, id):
+        category = get_object_or_404(Category, id=id)
+        serializer = CategorySerializer(category)
+        return Response(serializer.data)
 
-        response_data = {
-            "date": f"{year}-{month:02d}-{day:02d}",
-            "transactions": [
-                {
-                    "transaction_id": str(t['id']),
-                    "type": t['transaction_type'],
-                    "category": t['category__name'],
-                    "detail": t['description'],
-                    "cost": t['amount']
-                } for t in transactions
-            ]
-        }
+    def put(self, request, id):
+        category = get_object_or_404(Category, id=id)
+        serializer = CategorySerializer(category, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(response_data, status=status.HTTP_200_OK)
+    def delete(self, request, id):
+        category = get_object_or_404(Category, id=id)
+        category.delete()
+        return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
