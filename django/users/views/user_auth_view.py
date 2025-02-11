@@ -68,10 +68,20 @@ class UserTokenVerifyView(APIView):
                     new_access_token,
                     max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
                     httponly=True,
-                    secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
-                    samesite="Strict",
-                    domain=".livflow.co.kr",
+                    secure=False,  # ✅ 로컬에서는 HTTPS 없이 동작하도록 False
+                    samesite="Lax",  # ✅ 크로스 도메인 테스트를 위해 Lax
+                    domain=None,  # ✅ 로컬에서는 도메인 없이 설정 (자동 적용)
                 )
+
+                # response.set_cookie(
+                #     "access_token",
+                #     new_access_token,
+                #     max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+                #     httponly=True,
+                #     secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+                #     samesite="Strict",
+                #     domain=".livflow.co.kr",
+                # )
                 return response
 
             except (InvalidToken, TokenError):
