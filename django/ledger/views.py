@@ -7,8 +7,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db.models import Sum, Count
 
-from store.models import Store
-from .models import Transaction, Category
+from store.models import Store, Transaction  
+from .models import Category
 from .serializers import TransactionSerializer, CategorySerializer
 
 
@@ -20,8 +20,9 @@ class TransactionListCreateView(APIView):
         operation_summary="거래 내역 목록 조회",
         responses={200: TransactionSerializer(many=True)},
     )
-    def get(self, request):
-        transactions = Transaction.objects.filter(user=request.user)
+    def get(self, request, store_id):
+        store = get_object_or_404(Store, id=store_id, user=request.user)  # ✅ 특정 유저의 가게인지 확인
+        transactions = Transaction.objects.filter(store=store)  # ✅ 특정 가게의 거래만 가져오기
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
 
@@ -40,9 +41,12 @@ class TransactionListCreateView(APIView):
         ),
         responses={201: TransactionSerializer, 400: "잘못된 요청 데이터"},
     )
-    def post(self, request):
+    def post(self, request, store_id):
+        store = get_object_or_404(Store, id=store_id, user=request.user)  # ✅ store_id 추가
+
         transaction_data = {
             "user": request.user.id,
+            "store": store.id,  # ✅ store 추가
             "category": request.data.get("category_id"),
             "transaction_type": request.data.get("transaction_type"),
             "amount": request.data.get("amount"),
@@ -56,6 +60,7 @@ class TransactionListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 # 특정 거래 내역 조회, 수정 및 삭제 클래스
 class TransactionDetailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -64,8 +69,9 @@ class TransactionDetailView(APIView):
         operation_summary="특정 거래 내역 조회",
         responses={200: TransactionSerializer, 404: "거래 내역을 찾을 수 없음"},
     )
-    def get(self, request, id):
-        transaction = get_object_or_404(Transaction, id=id, user_id=request.user.id)
+    def get(self, request, store_id, id):
+        store = get_object_or_404(Store, id=store_id, user=request.user)  # ✅ store 확인
+        transaction = get_object_or_404(Transaction, id=id, store=store)  # ✅ store 기준 필터링
         serializer = TransactionSerializer(transaction)
         return Response(serializer.data)
 
@@ -74,8 +80,10 @@ class TransactionDetailView(APIView):
         request_body=TransactionSerializer,
         responses={200: TransactionSerializer, 400: "잘못된 요청 데이터", 404: "거래 내역을 찾을 수 없음"},
     )
-    def put(self, request, id):
-        transaction = get_object_or_404(Transaction, id=id, user_id=request.user.id)
+    def put(self, request, store_id, id):
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+        transaction = get_object_or_404(Transaction, id=id, store=store)  # ✅ 해당 store의 거래인지 확인
+
         serializer = TransactionSerializer(transaction, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -86,8 +94,9 @@ class TransactionDetailView(APIView):
         operation_summary="특정 거래 내역 삭제",
         responses={204: "삭제 성공", 404: "거래 내역을 찾을 수 없음"},
     )
-    def delete(self, request, id):
-        transaction = get_object_or_404(Transaction, id=id, user_id=request.user.id)
+    def delete(self, request, store_id, id):
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+        transaction = get_object_or_404(Transaction, id=id, store=store)  # ✅ store 기준 필터링
         transaction.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
