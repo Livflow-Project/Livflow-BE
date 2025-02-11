@@ -94,7 +94,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = '/app/media'
 
 # CORS configuration
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True # 배포시 False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "https://www.livflow.co.kr",
