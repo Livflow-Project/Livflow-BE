@@ -120,44 +120,61 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
 ]
 
-# Security settings
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_COOKIE_SECURE = True # 배포용
+# Security settings(배포용)
+# SECURE_SSL_REDIRECT = True
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# #CSRF_COOKIE_SECURE = True # 배포용
 # CSRF_COOKIE_SECURE = False # 개발용
-SESSION_COOKIE_SECURE = True # 배포용
+# #SESSION_COOKIE_SECURE = True # 배포용
 # SESSION_COOKIE_SECURE = False  # 개발용
+# X_FRAME_OPTIONS = 'DENY'
+# SECURE_CONTENT_TYPE_NOSNIFF = True
+# SECURE_BROWSER_XSS_FILTER = True
+# SECURE_HSTS_SECONDS = 31536000
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
+
+#(로컬용)
+# ✅ 개발 환경에서는 HTTPS 보안 설정 비활성화
+SECURE_SSL_REDIRECT = False  
+SECURE_HSTS_SECONDS = 0  
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False  
+SECURE_HSTS_PRELOAD = False  
+
+# ✅ CSRF & 쿠키 보안 완화 (로컬 개발용)
+CSRF_COOKIE_SECURE = False  
+SESSION_COOKIE_SECURE = False  
+
+# ✅ XSS 및 기타 보안 설정은 유지
 X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
 
-# Social login settings
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "APP": {
-            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-            "secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-            "key": os.getenv("GOOGLE_SOCIAL_KEY"),
-        }
-    },
-    "naver": {
-        "APP": {
-            "client_id": os.getenv("NAVER_CLIENT_ID"),
-            "secret": os.getenv("NAVER_CLIENT_SECRET"),
-            "key": os.getenv("NAVER_SOCIAL_KEY"),
-        }
-    },
-    "kakao": {
-        "APP": {
-            "client_id": os.getenv("KAKAO_CLIENT_ID"),
-            "secret": os.getenv("KAKAO_CLIENT_SECRET"),
-            "key": os.getenv("KAKAO_SOCIAL_KEY"),
-        }
-    },
-}
+
+# # Social login settings
+# SOCIALACCOUNT_PROVIDERS = {
+#     "google": {
+#         "APP": {
+#             "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+#             "secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+#             "key": os.getenv("GOOGLE_SOCIAL_KEY"),
+#         }
+#     },
+#     "naver": {
+#         "APP": {
+#             "client_id": os.getenv("NAVER_CLIENT_ID"),
+#             "secret": os.getenv("NAVER_CLIENT_SECRET"),
+#             "key": os.getenv("NAVER_SOCIAL_KEY"),
+#         }
+#     },
+#     "kakao": {
+#         "APP": {
+#             "client_id": os.getenv("KAKAO_CLIENT_ID"),
+#             "secret": os.getenv("KAKAO_CLIENT_SECRET"),
+#             "key": os.getenv("KAKAO_SOCIAL_KEY"),
+#         }
+#     },
+# }
 
 # JWT Authentication settings
 SIMPLE_JWT = {
