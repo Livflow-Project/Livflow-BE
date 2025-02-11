@@ -103,7 +103,8 @@ class GoogleExchangeCodeForToken(APIView):
             response.set_cookie(
                 "access_token",
                 access_token,
-                domain=".livflow.co.kr",
+                #배포시 수정
+                #domain=".livflow.co.kr",
                 httponly=True,
                 secure=settings.SESSION_COOKIE_SECURE,
                 max_age=int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()),

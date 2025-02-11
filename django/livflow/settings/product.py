@@ -96,20 +96,21 @@ MEDIA_ROOT = '/app/media'
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True # 배포시 False
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "https://www.livflow.co.kr",
-    "https://api.livflow.co.kr",
-    "https://api.livflow.co.kr:8443",
-    "http://localhost:5173",
-    "http://localhost:8000",
-]
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "authorization",
-    "content-type",
-    "x-csrftoken",
-    "x-requested-with",
-]
+#배포시 주석풀기
+# CORS_ALLOWED_ORIGINS = [
+#     "https://www.livflow.co.kr",
+#     "https://api.livflow.co.kr",
+#     "https://api.livflow.co.kr:8443",
+#     "http://localhost:5173",
+#     "http://localhost:8000",
+# ]
+# CORS_ALLOW_HEADERS = [
+#     "accept",
+#     "authorization",
+#     "content-type",
+#     "x-csrftoken",
+#     "x-requested-with",
+# ]
 
 
 CSRF_TRUSTED_ORIGINS = [
