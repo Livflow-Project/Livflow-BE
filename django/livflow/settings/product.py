@@ -196,18 +196,22 @@ SIMPLE_JWT = {
 }
 
 # REST Framework settings
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     ],
-# }
-
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # ✅ JWT 인증 활성화
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # ✅ 인증 없이 모든 API 사용 가능
+        'rest_framework.permissions.IsAuthenticated',  # ✅ 인증된 사용자만 접근 가능
     ],
 }
+
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [],
+#     'DEFAULT_PERMISSION_CLASSES': [
+#         'rest_framework.permissions.AllowAny',  # ✅ 인증 없이 모든 API 사용 가능
+#     ],
+# }
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Livflow API',
