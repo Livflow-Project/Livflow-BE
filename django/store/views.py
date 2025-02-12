@@ -1,5 +1,3 @@
-from django.utils.timezone import now
-from django.db.models import Sum
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from .models import Store, Transaction
+from .models import Store
 from .serializers import StoreSerializer
 
 
@@ -21,29 +19,11 @@ class StoreListView(APIView):
         responses={200: "가게 목록 반환", 401: "로그인이 필요합니다."}
     )
     def get(self, request):
-        stores = Store.objects.filter(user=request.user)
-        store_list = []
-
-        for store in stores:
-            transactions = Transaction.objects.filter(
-                user=request.user, store=store,
-                date__year=now().year, date__month=now().month
-            ).values('transaction_type', 'category__name').annotate(total=Sum('amount'))
-
-            chart = [
-                {"type": t["transaction_type"], "category": t["category__name"], "cost": t["total"]}
-                for t in transactions
-            ]
-
-            store_data = {
-                "store_id": str(store.id),
-                "name": store.name,
-                "address": store.address,
-                "chart": chart
-            }
-            store_list.append(store_data)
-
-        return Response(store_list)
+        stores = Store.objects.filter(user=request.user).values("id", "name", "address")
+        return Response([
+            {"store_id": str(store["id"]), "name": store["name"], "address": store["address"]}
+            for store in stores
+        ])
 
     @swagger_auto_schema(
         operation_summary="새 가게 등록",
