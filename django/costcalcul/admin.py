@@ -1,3 +1,37 @@
 from django.contrib import admin
+from .models import Store, Ingredient, Recipe, RecipeItem
 
-# Register your models here.
+
+# 상점(Store) 관리
+@admin.register(Store)
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "address")
+    search_fields = ("name",)
+    ordering = ("id",)
+
+
+# 재료(Ingredient) 관리
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "store", "purchase_price", "purchase_quantity", "unit", "vendor")
+    list_filter = ("store", "unit", "vendor")
+    search_fields = ("name", "store__name")
+    ordering = ("id",)
+
+
+# 레시피(Recipe) 관리
+@admin.register(Recipe)
+class RecipeAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "store", "sales_price_per_item", "production_quantity_per_batch", "recipe_img")
+    list_filter = ("store",)
+    search_fields = ("name", "store__name")
+    ordering = ("id",)
+
+
+# 레시피-재료 관계(RecipeItem) 관리
+@admin.register(RecipeItem)
+class RecipeItemAdmin(admin.ModelAdmin):
+    list_display = ("id", "recipe", "ingredient", "quantity_used", "unit")
+    list_filter = ("recipe__store", "recipe", "ingredient")
+    search_fields = ("recipe__name", "ingredient__name")
+    ordering = ("id",)
