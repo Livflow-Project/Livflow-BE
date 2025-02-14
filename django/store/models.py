@@ -1,49 +1,96 @@
+import uuid
 from django.db import models
-from store.models import Store  # 기존 store 앱에서 Store 모델 가져오기
+from users.models import CustomUser
+from django.utils.timezone import now
 
-# 재료(Ingredient) 모델
-class Ingredient(models.Model):
-    UNIT_CHOICES = [
-        ('mg', 'Milligram'),
-        ('ml', 'Milliliter'),
-        ('ea', 'Each'),
+
+# 카테고리 모델 정의
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)  # 중복 방지
+
+    def __str__(self):
+        return self.name
+
+# 가계부 거래 내역 모델
+class Transaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('income', 'Income'),
+        ('expense', 'Expense'),
     ]
 
-    store = models.ForeignKey(Store, related_name='ingredients', on_delete=models.CASCADE, null=True, blank=True)  # store 앱의 Store 모델 참조
-    name = models.CharField(max_length=100)  # 품목명
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)  # 구매 가격
-    purchase_quantity = models.DecimalField(max_digits=10, decimal_places=2)  # 구매 용량
-    unit = models.CharField(max_length=2, choices=UNIT_CHOICES)  # 단위 (mg, ml, ea)
-    vendor = models.CharField(max_length=100, blank=True, null=True)  # 판매처 (선택사항)
-    notes = models.TextField(blank=True, null=True)  # 비고 (선택사항)
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)  # UUID 사용
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='store_transactions')  # 사용자와 연결
+    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='transactions', default=1)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 금액
+    transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)  # 수입 또는 지출 구분
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)  # 카테고리와 연결
+    date = models.DateField()  # 거래 발생 날짜
+    description = models.TextField(blank=True, null=True)  # 설명 (선택 사항)
+    created_at = models.DateTimeField(auto_now_add=True)  # 생성 시간
+
+    def __str__(self):
+        return f"{self.user.email}'s {self.transaction_type} on {self.date} for {self.amount}"
+
+    @classmethod
+    def get_totals(cls, user, store=None):
+        """
+        해당 사용자의 전체 수입과 지출을 집계.
+        특정 가게(store)를 지정하면 해당 가게의 총합 반환.
+        """
+        filters = {'user': user}
+        if store:
+            filters['store'] = store
+
+        income_total = cls.objects.filter(**filters, transaction_type='income').aggregate(total=models.Sum('amount'))['total'] or 0
+        expense_total = cls.objects.filter(**filters, transaction_type='expense').aggregate(total=models.Sum('amount'))['total'] or 0
+        balance = income_total - expense_total
+
+        return {
+            'income_total': income_total,
+            'expense_total': expense_total,
+            'balance': balance
+        }
+
+    @classmethod
+    def get_current_month_totals(cls, user, store):
+        """
+        현재 월의 카테고리별 거래 합산
+        """
+        today = now()
+        transactions = cls.objects.filter(
+            user=user, store=store,
+            date__year=today.year, date__month=today.month
+        ).values('transaction_type', 'category__name').annotate(total=models.Sum('amount'))
+
+        return [
+            {"type": t["transaction_type"], "category": t["category__name"], "cost": t["total"]}
+            for t in transactions
+        ]
+
+# 가게 모델 정의
+class Store(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)  # UUID 사용
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  # 가게 소유자
+    name = models.CharField(max_length=100)
+    address = models.CharField(max_length=255, blank=True, null=True)  # 선택적 필드
+    created_at = models.DateTimeField(auto_now_add=True)  # 생성 시간
 
     def __str__(self):
         return self.name
 
-    @property
-    def unit_cost(self):
-        return self.purchase_price / self.purchase_quantity if self.purchase_quantity else 0
+    def get_ledger_summary(self):
+        """
+        해당 가게의 카테고리별 수입/지출 총합을 계산
+        """
+        income = Transaction.objects.filter(
+            user=self.user, store=self, transaction_type='income'
+        ).values('category__name').annotate(total_income=models.Sum('amount'))
 
+        expense = Transaction.objects.filter(
+            user=self.user, store=self, transaction_type='expense'
+        ).values('category__name').annotate(total_expense=models.Sum('amount'))
 
-# 레시피(Recipe) 모델
-class Recipe(models.Model):
-    store = models.ForeignKey(Store, related_name='recipes', on_delete=models.CASCADE, null=True, blank=True)  # store 앱의 Store 모델 참조
-    name = models.CharField(max_length=100)  # 메뉴 이름
-    sales_price_per_item = models.DecimalField(max_digits=10, decimal_places=2)  # 개당 판매가
-    production_quantity_per_batch = models.PositiveIntegerField()  # 1 배합 시 생산 수량
-    recipe_img = models.CharField(max_length=255, blank=True, null=True)  # 레시피 이미지 (선택사항)
-
-    def __str__(self):
-        return self.name
-
-    @property
-    def total_material_cost(self):
-        return sum(item.material_cost for item in self.recipe_items.all())
-
-    @property
-    def material_cost_per_item(self):
-        return self.total_material_cost / self.production_quantity_per_batch if self.production_quantity_per_batch else 0
-
-    @property
-    def cost_ratio(self):
-        return (self.material_cost_per_item / self.sales_price_per_item) * 100 if self.sales_price_per_item else 0
+        return {
+            'income': {item['category__name']: item['total_income'] for item in income},
+            'expense': {item['category__name']: item['total_expense'] for item in expense}
+        }
