@@ -1,13 +1,5 @@
 from django.contrib import admin
-from .models import Store, Ingredient, Recipe, RecipeItem
-
-
-# 상점(Store) 관리
-@admin.register(Store)
-class StoreAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "address")
-    search_fields = ("name",)
-    ordering = ("id",)
+from .models import Ingredient, Recipe, RecipeItem  # Store 제거
 
 
 # 재료(Ingredient) 관리
