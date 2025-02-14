@@ -1,238 +1,118 @@
-from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from .models import Ingredient, Recipe, RecipeItem
-from .serializers import IngredientSerializer, RecipeSerializer, RecipeItemSerializer
-from .utils import calculate_unit_price, calculate_recipe_cost  # utils에서 계산 함수 가져오기
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Recipe, RecipeItem, Ingredient
+from .serializers import RecipeSerializer
+from django.shortcuts import get_object_or_404
 
-# 모든 재료 목록 조회 및 생성 클래스
-class IngredientListView(APIView):
-    # permission_classes = [IsAuthenticated]
+# 특정 상점의 모든 레시피 조회
+class StoreRecipeListView(APIView):
+    def get(self, request, store_id):
+        recipes = Recipe.objects.filter(store_id=store_id)
+        recipe_data = []
 
-    # 모든 재료 목록 조회
-    def get(self, request):
-        ingredients = Ingredient.objects.all()
-        serializer = IngredientSerializer(ingredients, many=True)
-        return Response(serializer.data)
+        for recipe in recipes:
+            recipe_info = {
+                "recipe_id": recipe.id,
+                "recipe_name": recipe.name
+            }
+            if recipe.sales_price_per_item:
+                recipe_info["recipe_cost"] = recipe.sales_price_per_item
+            if recipe.recipe_img:
+                recipe_info["recipe_img"] = recipe.recipe_img
 
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'name': openapi.Schema(type=openapi.TYPE_STRING, description='재료 이름'),
-                'purchase_price': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='구매 가격'),
-                'purchase_quantity': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='구매 수량'),
-                'unit': openapi.Schema(type=openapi.TYPE_STRING, description='단위 (예: g, ml, ea 등)'),
-            },
-            required=['name', 'purchase_price', 'purchase_quantity', 'unit'],
-        )
-    )
-    # 새로운 재료 생성
-    def post(self, request):
-        serializer = IngredientSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            recipe_data.append(recipe_info)
 
-# 특정 재료 조회, 수정 및 삭제 클래스
-class IngredientDetailView(APIView):
-    # permission_classes = [IsAuthenticated]
+        return Response(recipe_data, status=status.HTTP_200_OK)
 
-    # 특정 재료 조회
-    def get(self, request, id):
-        try:
-            ingredient = Ingredient.objects.get(id=id)
-        except Ingredient.DoesNotExist:
-            return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = IngredientSerializer(ingredient)
-        return Response(serializer.data)
 
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'name': openapi.Schema(type=openapi.TYPE_STRING, description='재료 이름'),
-                'purchase_price': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='구매 가격'),
-                'purchase_quantity': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='구매 수량'),
-                'unit': openapi.Schema(type=openapi.TYPE_STRING, description='단위 (예: g, ml, ea 등)'),
-            },
-            required=['name', 'purchase_price', 'purchase_quantity', 'unit'],
-        )
-    )
-    # 특정 재료 수정
-    def put(self, request, id):
-        try:
-            ingredient = Ingredient.objects.get(id=id)
-        except Ingredient.DoesNotExist:
-            return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = IngredientSerializer(ingredient, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# 특정 레시피 상세 조회
+class StoreRecipeDetailView(APIView):
+    def get(self, request, store_id, recipe_id):
+        recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
+        ingredients = RecipeItem.objects.filter(recipe=recipe)
 
-    # 특정 재료 삭제
-    def delete(self, request, id):
-        try:
-            ingredient = Ingredient.objects.get(id=id)
-        except Ingredient.DoesNotExist:
-            return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        ingredient.delete()
-        return Response({"message": "재료가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+        ingredients_data = [
+            {
+                "ingredient_id": item.ingredient.id,
+                "ingredient_name": item.ingredient.name,
+                "required_amount": item.quantity_used,
+                "unit": item.unit
+            }
+            for item in ingredients
+        ]
 
-# 레시피 목록 조회 및 생성 클래스
-class RecipeListView(APIView):
-    # permission_classes = [IsAuthenticated]
+        response_data = {
+            "recipe_id": recipe.id,
+            "recipe_name": recipe.name,
+            "ingredients": ingredients_data
+        }
+        if recipe.sales_price_per_item:
+            response_data["recipe_cost"] = recipe.sales_price_per_item
+        if recipe.recipe_img:
+            response_data["recipe_img"] = recipe.recipe_img
+        if recipe.production_quantity_per_batch:
+            response_data["production_quantity"] = recipe.production_quantity_per_batch
 
-    # 모든 레시피 목록 조회
-    def get(self, request):
-        recipes = Recipe.objects.all()
-        serializer = RecipeSerializer(recipes, many=True)
-        return Response(serializer.data)
+        # 총 원가 및 생산 단가 계산
+        total_ingredient_cost = sum(item.ingredient.unit_cost * item.quantity_used for item in ingredients)
+        response_data["total_ingredient_cost"] = total_ingredient_cost
+        if recipe.production_quantity_per_batch:
+            response_data["production_cost"] = total_ingredient_cost / recipe.production_quantity_per_batch
 
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'name': openapi.Schema(type=openapi.TYPE_STRING, description='레시피 이름'),
-                'sales_price_per_item': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='항목당 판매 가격'),
-                'production_quantity_per_batch': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='배치당 생산 수량'),
-                'ingredients': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Items(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'ingredient_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='재료 ID'),
-                            'quantity_used': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='사용된 수량'),
-                            'unit': openapi.Schema(type=openapi.TYPE_STRING, description='단위 (예: g, ml, ea 등)'),
-                        },
-                        required=['ingredient_id', 'quantity_used', 'unit']
-                    )
-                )
-            },
-            required=['name', 'sales_price_per_item', 'production_quantity_per_batch', 'ingredients'],
-        )
-    )
-    # 새로운 레시피 생성 및 비용 계산
-    def post(self, request):
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+# 새로운 레시피 생성
+class StoreRecipeCreateView(APIView):
+    def post(self, request, store_id):
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            recipe = serializer.save(store_id=store_id)
 
-            # 요청된 재료 리스트 가져오기
-            ingredients = request.data.get('ingredients')
-            sales_price_per_item = request.data.get('sales_price_per_item')
-            production_quantity_per_batch = request.data.get('production_quantity_per_batch')
-
-            # 각 재료의 단가 계산
-            for ingredient in ingredients:
-                try:
-                    ingredient_instance = Ingredient.objects.get(id=ingredient['ingredient_id'])
-                except Ingredient.DoesNotExist:
-                    return Response({"detail": "해당 재료를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-                ingredient['unit_price'] = calculate_unit_price(ingredient_instance.purchase_price, ingredient_instance.purchase_quantity)
-
-            # 레시피 원가 관련 정보 계산
-            recipe_cost_data = calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity_per_batch)
-
-            # 반환 데이터 구성
-            response_data = {
-                "recipe": serializer.data,
-                "cost_details": recipe_cost_data
-            }
-            return Response(response_data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# 특정 레시피 조회, 수정 및 삭제 클래스
-class RecipeDetailView(APIView):
-    # permission_classes = [IsAuthenticated]
-
-    # 특정 레시피 조회
-    def get(self, request, id):
-        try:
-            recipe = Recipe.objects.get(id=id)
-        except Recipe.DoesNotExist:
-            return Response({"detail": "해당 레시피를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = RecipeSerializer(recipe)
-        return Response(serializer.data)
-
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'name': openapi.Schema(type=openapi.TYPE_STRING, description='레시피 이름'),
-                'sales_price_per_item': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='항목당 판매 가격'),
-                'production_quantity_per_batch': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='배치당 생산 수량'),
-                'ingredients': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Items(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            'ingredient_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='재료 ID'),
-                            'quantity_used': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='사용된 수량'),
-                            'unit': openapi.Schema(type=openapi.TYPE_STRING, description='단위 (예: g, ml, ea 등)'),
-                        },
-                        required=['ingredient_id', 'quantity_used', 'unit']
-                    )
+            # 요청된 재료 처리
+            ingredients = request.data.get("ingredients", [])
+            for ingredient_data in ingredients:
+                ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
+                RecipeItem.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity_used=ingredient_data["required_amount"],
+                    unit=ingredient_data["unit"]
                 )
-            },
-            required=['name', 'sales_price_per_item', 'production_quantity_per_batch', 'ingredients'],
-        )
-    )
-    # 특정 레시피 수정
-    def put(self, request, id):
-        try:
-            recipe = Recipe.objects.get(id=id)
-        except Recipe.DoesNotExist:
-            return Response({"detail": "해당 레시피를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = RecipeSerializer(recipe, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # 특정 레시피 삭제
-    def delete(self, request, id):
-        try:
-            recipe = Recipe.objects.get(id=id)
-        except Recipe.DoesNotExist:
-            return Response({"detail": "해당 레시피를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        recipe.delete()
-        return Response({"message": "레시피가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
-
-# 레시피 재료 생성 클래스
-class RecipeItemCreateView(APIView):
-    # permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'recipe': openapi.Schema(type=openapi.TYPE_INTEGER, description='레시피 ID'),
-                'ingredient': openapi.Schema(type=openapi.TYPE_INTEGER, description='재료 ID'),
-                'quantity_used': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='사용된 수량'),
-                'unit': openapi.Schema(type=openapi.TYPE_STRING, description='단위 (예: g, ml, ea 등)'),
-            },
-            required=['recipe', 'ingredient', 'quantity_used', 'unit'],
-        )
-    )
-    def post(self, request):
-        serializer = RecipeItemSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# 레시피 재료 목록 조회 클래스
-class RecipeItemListView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        recipe_items = RecipeItem.objects.all()
-        serializer = RecipeItemSerializer(recipe_items, many=True)
-        return Response(serializer.data)
+# 특정 레시피 수정
+class StoreRecipeUpdateView(APIView):
+    def put(self, request, store_id, recipe_id):
+        recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
+        serializer = RecipeSerializer(recipe, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            recipe = serializer.save()
+
+            # 기존 재료 삭제 후 새로운 재료 추가
+            RecipeItem.objects.filter(recipe=recipe).delete()
+            ingredients = request.data.get("ingredients", [])
+            for ingredient_data in ingredients:
+                ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
+                RecipeItem.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity_used=ingredient_data["required_amount"],
+                    unit=ingredient_data["unit"]
+                )
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# 특정 레시피 삭제
+class StoreRecipeDeleteView(APIView):
+    def delete(self, request, store_id, recipe_id):
+        recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
+        recipe.delete()
+        return Response({"message": "레시피가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)

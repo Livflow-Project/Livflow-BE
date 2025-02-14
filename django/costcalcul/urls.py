@@ -1,20 +1,16 @@
 from django.urls import path
 from .views import (
-    IngredientListView, IngredientDetailView,
-    RecipeListView, RecipeDetailView,
-    RecipeItemCreateView, RecipeItemListView
+    StoreRecipeListView,
+    StoreRecipeDetailView,
+    StoreRecipeCreateView,
+    StoreRecipeUpdateView,
+    StoreRecipeDeleteView
 )
 
 urlpatterns = [
-    # 재료 관련 엔드포인트
-    path('ingredients/', IngredientListView.as_view(), name='ingredient-list-create'),
-    path('ingredients/<int:id>/', IngredientDetailView.as_view(), name='ingredient-detail'),
-
-    # 레시피 관련 엔드포인트
-    path('recipes/', RecipeListView.as_view(), name='recipe-list-create'),
-    path('recipes/<int:id>/', RecipeDetailView.as_view(), name='recipe-detail'),
-
-    # 레시피 재료 관련 엔드포인트
-    path('recipeitems/', RecipeItemCreateView.as_view(), name='recipeitem-create'),
-    path('recipeitems/list/', RecipeItemListView.as_view(), name='recipeitem-list'),
+    path('costcalcul/<int:store_id>/', StoreRecipeListView.as_view(), name='store-recipe-list'),
+    path('costcalcul/<int:store_id>/<int:recipe_id>/', StoreRecipeDetailView.as_view(), name='store-recipe-detail'),
+    path('costcalcul/<int:store_id>/', StoreRecipeCreateView.as_view(), name='store-recipe-create'),
+    path('costcalcul/<int:store_id>/<int:recipe_id>/', StoreRecipeUpdateView.as_view(), name='store-recipe-update'),
+    path('costcalcul/<int:store_id>/<int:recipe_id>/', StoreRecipeDeleteView.as_view(), name='store-recipe-delete'),
 ]
