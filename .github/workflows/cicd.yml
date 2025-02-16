@@ -73,6 +73,4 @@ jobs:
           script: |
             cd /home/joo/back-end-coffee
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml restart nginx
-            cd
-            cd /home/joo/Front-end-coffee
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker compose up
+
