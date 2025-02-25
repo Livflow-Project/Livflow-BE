@@ -34,7 +34,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf 
       - /etc/letsencrypt:/etc/letsencrypt
-      - ./certbot:/var/www/certbot  # Certbot 인증용 경로
+      - /home/joo/back-end-coffee/certbot:/var/www/certbot
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
