@@ -28,17 +28,19 @@ services:
     image: nginx:alpine
     container_name: ng01
     ports:
+      - "80:80"  # 80 포트 추가 (HTTP 인증용)
       - "8443:8443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /etc/letsencrypt:/etc/letsencrypt
-      - ./certbot:/var/www/certbot
+      - ./certbot:/var/www/certbot  # Certbot 인증용 경로
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
       - web
     networks:
       - app-network
+
 
   db:
     image: postgres:latest
