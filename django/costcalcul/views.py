@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Recipe, RecipeItem, Ingredient
+from .models import Recipe, RecipeItem
 from .serializers import RecipeSerializer
 from django.shortcuts import get_object_or_404
 import uuid
@@ -12,7 +12,7 @@ class StoreRecipeListView(APIView):
         recipes = Recipe.objects.filter(store_id=store_id)
         recipe_data = [
             {
-                "recipe_id": str(uuid.uuid4()),  # UUID 생성
+                "recipe_id": recipe.id,
                 "recipe_name": recipe.name,
                 "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
                 "recipe_img": recipe.recipe_img if recipe.recipe_img else None,
@@ -21,6 +21,26 @@ class StoreRecipeListView(APIView):
             for recipe in recipes
         ]
         return Response(recipe_data, status=status.HTTP_200_OK)
+
+    def post(self, request, store_id):
+        serializer = RecipeSerializer(data=request.data)
+        if serializer.is_valid():
+            recipe = serializer.save(store_id=store_id)
+
+            # 요청된 재료 처리
+            ingredients = request.data.get("ingredients", [])
+            for ingredient_data in ingredients:
+                ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
+                RecipeItem.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity_used=ingredient_data["required_amount"],
+                    unit=ingredient_data["unit"]
+                )
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # 특정 레시피 상세 조회
@@ -53,27 +73,6 @@ class StoreRecipeDetailView(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
 
-
-# 새로운 레시피 생성
-class StoreRecipeCreateView(APIView):
-    def post(self, request, store_id):
-        serializer = RecipeSerializer(data=request.data)
-        if serializer.is_valid():
-            recipe = serializer.save(store_id=store_id)
-
-            # 요청된 재료 처리
-            ingredients = request.data.get("ingredients", [])
-            for ingredient_data in ingredients:
-                ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
-                RecipeItem.objects.create(
-                    recipe=recipe,
-                    ingredient=ingredient,
-                    quantity_used=ingredient_data["required_amount"],
-                    unit=ingredient_data["unit"]
-                )
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # 특정 레시피 수정
@@ -108,63 +107,4 @@ class StoreRecipeDeleteView(APIView):
         recipe.delete()
         return Response({"message": "레시피가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
-# 특정 상점의 모든 재료 및 남은 재고 조회
-class StoreInventoryView(APIView):
-    def get(self, request, store_id):
-        ingredients = Ingredient.objects.filter(store_id=store_id)
-        inventory_data = [
-            {
-                "ingredient_id": str(uuid.uuid4()),  # UUID 생성 (프론트엔드 요구사항 반영)
-                "ingredient_name": ingredient.name,
-                "remaining_stock": ingredient.purchase_quantity,  # 초기값은 purchase_quantity
-                "unit": ingredient.unit,
-            }
-            for ingredient in ingredients
-        ]
-        return Response(inventory_data, status=status.HTTP_200_OK)
 
-
-# 특정 재료 등록 후 초기 재고 설정
-class IngredientCreateView(APIView):
-    def post(self, request, store_id):
-        data = request.data
-        ingredient = Ingredient.objects.create(
-            store_id=store_id,
-            name=data.get("name"),
-            purchase_price=data.get("purchase_price"),
-            purchase_quantity=data.get("purchase_quantity"),  # 초기값 설정
-            unit=data.get("unit"),
-            vendor=data.get("vendor", ""),
-            notes=data.get("notes", "")
-        )
-
-        response_data = {
-            "ingredient_id": str(uuid.uuid4()),  # UUID 반환
-            "ingredient_name": ingredient.name,
-            "remaining_stock": ingredient.purchase_quantity,
-            "unit": ingredient.unit,
-        }
-        return Response(response_data, status=status.HTTP_201_CREATED)
-
-
-# 특정 재료 사용 (재고 감소)
-class UseIngredientStockView(APIView):
-    def post(self, request, store_id, ingredient_id):
-        ingredient = get_object_or_404(Ingredient, id=ingredient_id, store_id=store_id)
-        used_stock = request.data.get("used_stock")
-
-        if used_stock is None or used_stock <= 0:
-            return Response({"error": "유효한 used_stock 값을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if ingredient.purchase_quantity < used_stock:
-            return Response({"error": "재고가 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        ingredient.purchase_quantity -= used_stock  # 남은 재고 감소
-        ingredient.save()
-
-        return Response({
-            "ingredient_id": ingredient.id,
-            "ingredient_name": ingredient.name,
-            "remaining_stock": ingredient.purchase_quantity,
-            "unit": ingredient.unit,
-        }, status=status.HTTP_200_OK)

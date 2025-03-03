@@ -1,13 +1,6 @@
 from rest_framework import serializers
 from .models import Ingredient, Recipe, RecipeItem
 
-# 재료(Ingredient) 시리얼라이저
-class IngredientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Ingredient
-        fields = ['id', 'name', 'purchase_price', 'purchase_quantity', 'unit']
-        read_only_fields = ['id']
-
 # 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
