@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Ingredient, Recipe, RecipeItem  # Store 제거
+from .models import Recipe, RecipeItem  # Store 제거
 
 
 # 레시피(Recipe) 관리
