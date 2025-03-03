@@ -1,55 +1,39 @@
-# utils.py
-
-def calculate_unit_price(purchase_price, purchase_quantity):
-    """
-    구매가를 용량으로 나누어 단가를 계산하는 함수.
-    """
-    if purchase_quantity == 0:
-        return 0  # 용량이 0인 경우를 대비해 0을 반환
-    return round(purchase_price / purchase_quantity, 2)  # 소수점 둘째 자리까지 반올림
+# costcalcul/utils.py
 
 def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity_per_batch):
     """
-    레시피 비용 계산 함수:
-    - ingredients: 각 재료의 정보 (단가 포함)
-    - sales_price_per_item: 메뉴의 개당 판매가
-    - production_quantity_per_batch: 1배합 생산수량
+    레시피 비용 계산 함수
+    - ingredients: 단가 포함한 재료 정보 리스트
+    - sales_price_per_item: 개당 판매 가격
+    - production_quantity_per_batch: 한 배합당 생산 개수
     """
     total_material_cost = 0  # 총재료원가
     ingredient_costs = []
 
     for ingredient in ingredients:
-        unit_price = ingredient['unit_price']  # 재료 단가
-        quantity_used = ingredient['quantity_used']  # 사용량
+        unit_price = ingredient['unit_price']  # ✅ ingredients/utils.py의 단가 활용
+        required_amount = ingredient['quantity_used']  # ✅ 프론트엔드 명칭과 맞춤
 
-        # 원가 = 사용량 * 단가
-        cost = round(quantity_used * unit_price, 2)
-
-        # 재료 원가 리스트에 저장
+        cost = round(required_amount * unit_price, 2)  # 원가 계산
         ingredient_costs.append({
-            "ingredient_name": ingredient['name'],
+            "ingredient_name": ingredient['ingredient_name'],
             "unit_price": unit_price,
-            "quantity_used": quantity_used,
+            "required_amount": required_amount,  # ✅ 프론트엔드 명칭과 일치
             "cost": cost
         })
+        total_material_cost += cost  # 총 원가 누적
 
-        # 총재료원가에 원가 추가
-        total_material_cost += cost
+    # ✅ 0으로 나누는 오류 방지
+    safe_production_quantity = max(1, production_quantity_per_batch)
+    cost_per_item = round(total_material_cost / safe_production_quantity, 2)  # 개당 원가 계산
 
-    # 개당 재료 원가 = 총재료원가 / 1배합 생산수량
-    cost_per_item = round(total_material_cost / production_quantity_per_batch, 2)
-
-    # 재료비율 = 총재료원가 / (개당 판매가 * 1배합 생산수량)
-    total_sales_revenue = sales_price_per_item * production_quantity_per_batch
+    # ✅ 총 판매 수익 계산 (0 방지)
+    total_sales_revenue = sales_price_per_item * safe_production_quantity
     material_ratio = round(total_material_cost / total_sales_revenue, 2) if total_sales_revenue != 0 else 0
 
-    # 원가율 계산 (각 재료의 원가 / 전체 원가합)
-    for ingredient_cost in ingredient_costs:
-        ingredient_cost['cost_ratio'] = round(ingredient_cost['cost'] / total_material_cost, 2) if total_material_cost != 0 else 0
-
     return {
-        "ingredient_costs": ingredient_costs,  # 각 재료별 원가, 원가율
-        "total_material_cost": total_material_cost,  # 총재료원가
-        "cost_per_item": cost_per_item,  # 개당 재료 원가
-        "material_ratio": material_ratio  # 재료비율
+        "ingredient_costs": ingredient_costs,  # ✅ 프론트엔드 요구사항과 맞춤
+        "total_material_cost": total_material_cost,  
+        "cost_per_item": cost_per_item,  
+        "material_ratio": material_ratio
     }
