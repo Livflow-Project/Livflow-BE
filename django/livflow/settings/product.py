@@ -39,12 +39,13 @@ CUSTOM_INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'django_cleanup.apps.CleanupConfig',
-    'ledger',
+    # 프로젝트 앱 추가
     'users',
-    'costcalcul',
     'store',
+    'costcalcul',
+    'ledger',
     'ingredients',
-    'inventory'
+    'inventory',
 ]
 
 INSTALLED_APPS = DEFAULT_DJANGO_APPS + CUSTOM_INSTALLED_APPS
