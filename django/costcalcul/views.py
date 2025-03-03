@@ -10,20 +10,16 @@ import uuid
 class StoreRecipeListView(APIView):
     def get(self, request, store_id):
         recipes = Recipe.objects.filter(store_id=store_id)
-        recipe_data = []
-
-        for recipe in recipes:
-            recipe_info = {
-                "recipe_id": recipe.id,
-                "recipe_name": recipe.name
+        recipe_data = [
+            {
+                "recipe_id": str(uuid.uuid4()),  # UUID 생성
+                "recipe_name": recipe.name,
+                "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
+                "recipe_img": recipe.recipe_img if recipe.recipe_img else None,
+                "is_favorites": False,  # 기본값 설정
             }
-            if recipe.sales_price_per_item:
-                recipe_info["recipe_cost"] = recipe.sales_price_per_item
-            if recipe.recipe_img:
-                recipe_info["recipe_img"] = recipe.recipe_img
-
-            recipe_data.append(recipe_info)
-
+            for recipe in recipes
+        ]
         return Response(recipe_data, status=status.HTTP_200_OK)
 
 
@@ -35,7 +31,7 @@ class StoreRecipeDetailView(APIView):
 
         ingredients_data = [
             {
-                "ingredient_id": item.ingredient.id,
+                "ingredient_id": str(uuid.uuid4()),  # UUID 생성
                 "ingredient_name": item.ingredient.name,
                 "required_amount": item.quantity_used,
                 "unit": item.unit
@@ -44,22 +40,16 @@ class StoreRecipeDetailView(APIView):
         ]
 
         response_data = {
-            "recipe_id": recipe.id,
+            "recipe_id": str(uuid.uuid4()),  # UUID 생성
             "recipe_name": recipe.name,
-            "ingredients": ingredients_data
+            "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
+            "recipe_img": recipe.recipe_img if recipe.recipe_img else None,
+            "is_favorites": False,  # 기본값 설정
+            "ingredients": ingredients_data,
+            "total_ingredient_cost": recipe.total_material_cost,
+            "production_quantity": recipe.production_quantity_per_batch,
+            "production_cost": recipe.material_cost_per_item,
         }
-        if recipe.sales_price_per_item:
-            response_data["recipe_cost"] = recipe.sales_price_per_item
-        if recipe.recipe_img:
-            response_data["recipe_img"] = recipe.recipe_img
-        if recipe.production_quantity_per_batch:
-            response_data["production_quantity"] = recipe.production_quantity_per_batch
-
-        # 총 원가 및 생산 단가 계산
-        total_ingredient_cost = sum(item.ingredient.unit_cost * item.quantity_used for item in ingredients)
-        response_data["total_ingredient_cost"] = total_ingredient_cost
-        if recipe.production_quantity_per_batch:
-            response_data["production_cost"] = total_ingredient_cost / recipe.production_quantity_per_batch
 
         return Response(response_data, status=status.HTTP_200_OK)
 
