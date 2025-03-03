@@ -30,6 +30,8 @@ urlpatterns = [
     path('api/costcalcul/', include('costcalcul.urls')),  # 'costcalcul' 앱의 URL 패턴 추가
     path('api/ledger/', include('ledger.urls')),  # 'ledger' 앱의 URL 패턴 추가
     path('api/ingredients/', include('ingredients.urls')),
+    path('api/inventory/', include('inventory_urls')),
+    
     
     # Swagger 및 Redoc 경로 추가
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

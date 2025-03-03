@@ -44,6 +44,7 @@ CUSTOM_INSTALLED_APPS = [
     'costcalcul',
     'store',
     'ingredients',
+    'inventory'
 ]
 
 INSTALLED_APPS = DEFAULT_DJANGO_APPS + CUSTOM_INSTALLED_APPS
