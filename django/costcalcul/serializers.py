@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Ingredient, Recipe, RecipeItem
+from .models import Recipe, RecipeItem
 
 # 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
