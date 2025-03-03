@@ -43,6 +43,7 @@ CUSTOM_INSTALLED_APPS = [
     'users',
     'costcalcul',
     'store',
+    'ingredients',
 ]
 
 INSTALLED_APPS = DEFAULT_DJANGO_APPS + CUSTOM_INSTALLED_APPS
