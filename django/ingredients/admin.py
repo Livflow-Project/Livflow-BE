@@ -13,3 +13,9 @@ class IngredientAdmin(admin.ModelAdmin):
         """ ✅ Django Admin에서 단가(unit_cost) 표시 (DB 저장 X) """
         return round(obj.unit_cost, 2)  # 소수점 2자리까지 표시
     unit_cost_display.short_description = "단가 (unit cost)"  # Admin 컬럼 제목
+
+    # ✅ 수정 가능 필드 지정 (단가 제외)
+    fields = ("name", "store", "purchase_price", "purchase_quantity", "unit", "vendor", "notes")
+
+    # ✅ 단가(unit_cost) 읽기 전용 처리
+    readonly_fields = ("unit_cost_display",)
