@@ -6,9 +6,12 @@ from .serializers import RecipeSerializer
 from django.shortcuts import get_object_or_404
 from .utils import calculate_recipe_cost  # ✅ 레시피 원가 계산 함수 활용
 from ingredients.models import Ingredient  # ✅ Ingredient 모델 import
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
     def get(self, request, store_id):
         recipes = Recipe.objects.filter(store_id=store_id)
         recipe_data = [
@@ -85,6 +88,7 @@ class StoreRecipeDetailView(APIView):
 
 # ✅ 특정 레시피 수정
 class StoreRecipeUpdateView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
     def put(self, request, store_id, recipe_id):
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)

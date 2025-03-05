@@ -5,8 +5,10 @@ from .models import Recipe, RecipeItem
 class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = ['id', 'name', 'sales_price_per_item', 'production_quantity_per_batch']
+        fields = ['id', 'name', 'sales_price_per_item', 'production_quantity_per_batch', "recipe_img"]
         read_only_fields = ['id']
+        recipe_img = serializers.ImageField(required=False)
+
 
 # 레시피 재료(RecipeItem) 시리얼라이저
 class RecipeItemSerializer(serializers.ModelSerializer):

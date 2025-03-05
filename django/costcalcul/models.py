@@ -1,15 +1,23 @@
 from django.db import models
 from store.models import Store
+import os
+from uuid import uuid4
 
-# ✅ Ingredient 모델 삭제 (이미 ingredients 앱에서 관리됨)
+
+def recipe_image_upload_path(instance, filename):
+    """이미지를 저장할 경로 설정"""
+    ext = filename.split('.')[-1]
+    new_filename = f"{uuid4().hex}.{ext}"
+    return os.path.join("recipe_images", new_filename)
+
 
 # 레시피(Recipe) 모델
 class Recipe(models.Model):
-    store = models.ForeignKey(Store, related_name='recipes', on_delete=models.CASCADE, null=True, blank=True)
-    name = models.CharField(max_length=100)
-    sales_price_per_item = models.DecimalField(max_digits=10, decimal_places=2)
-    production_quantity_per_batch = models.PositiveIntegerField()
-    recipe_img = models.CharField(max_length=255, blank=True, null=True)
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="recipes")
+    name = models.CharField(max_length=255)
+    sales_price_per_item = models.FloatField(null=True, blank=True)
+    production_quantity_per_batch = models.IntegerField(default=1)
+    recipe_img = models.ImageField(upload_to=recipe_image_upload_path, null=True, blank=True)  # ✅ 이미지 필드 추가
 
     def __str__(self):
         return self.name
