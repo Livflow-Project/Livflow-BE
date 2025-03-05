@@ -48,16 +48,19 @@ class StoreRecipeListView(APIView):
 
 # ✅ 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
     def get(self, request, store_id, recipe_id):
+        """ 특정 레시피 상세 조회 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
 
         # ✅ 각 재료의 단가 포함한 데이터 구성
         ingredients_data = [
             {
-                "ingredient_id": str(item.ingredient.id),  # ✅ UUID 변환
+                "ingredient_id": str(item.ingredient.id),  
                 "ingredient_name": item.ingredient.name,
-                "unit_price": item.ingredient.unit_cost,  # ✅ ingredients/utils.py 활용
+                "unit_price": item.ingredient.unit_cost,  
                 "quantity_used": item.quantity_used,
                 "unit": item.unit
             }
@@ -72,11 +75,11 @@ class StoreRecipeDetailView(APIView):
         )
 
         response_data = {
-            "recipe_id": str(recipe.id),  # ✅ UUID 변환
+            "recipe_id": str(recipe.id),  
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
             "recipe_img": recipe.recipe_img,
-            "is_favorites": False,  # ✅ 기본값 설정
+            "is_favorites": False,
             "ingredients": cost_data["ingredient_costs"],
             "total_ingredient_cost": cost_data["total_material_cost"],
             "production_quantity": recipe.production_quantity_per_batch,
@@ -85,11 +88,8 @@ class StoreRecipeDetailView(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
 
-
-# ✅ 특정 레시피 수정
-class StoreRecipeUpdateView(APIView):
-    parser_classes = (MultiPartParser, FormParser)
     def put(self, request, store_id, recipe_id):
+        """ 특정 레시피 수정 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
@@ -111,10 +111,8 @@ class StoreRecipeUpdateView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-# ✅ 특정 레시피 삭제
-class StoreRecipeDeleteView(APIView):
     def delete(self, request, store_id, recipe_id):
+        """ 특정 레시피 삭제 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         recipe.delete()
         return Response({"message": "레시피가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
