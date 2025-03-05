@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -11,8 +11,12 @@ from .serializers import StoreSerializer
 
 
 class StoreListView(APIView):
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
+    def get_permissions(self):
 
+        if self.request.method == "POST":
+            return [AllowAny()]
+        return [IsAuthenticated()]
     @swagger_auto_schema(
         operation_summary="모든 가게 목록 조회",
         operation_description="현재 로그인한 사용자의 모든 가게 목록을 반환합니다.",
