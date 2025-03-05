@@ -44,16 +44,16 @@ class Recipe(models.Model):
 # 레시피-재료 관계 모델 (RecipeItem)
 class RecipeItem(models.Model):
     recipe = models.ForeignKey(Recipe, related_name='recipe_items', on_delete=models.CASCADE)
-    ingredient = models.ForeignKey("ingredients.Ingredient", on_delete=models.CASCADE)  # ✅ ingredients 앱의 Ingredient를 참조하도록 수정
+    ingredient = models.ForeignKey("ingredients.Ingredient", on_delete=models.CASCADE)
     quantity_used = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=2, choices=[('mg', 'Milligram'), ('ml', 'Milliliter'), ('ea', 'Each')])
-
     def __str__(self):
         return f"{self.ingredient.name} in {self.recipe.name}"
 
     @property
     def material_cost(self):
-        if self.ingredient.unit_cost is not None and self.quantity_used is not None:
+        """ ✅ 개별 재료 원가 계산 """
+        if self.ingredient.unit_cost and self.quantity_used:
             return self.ingredient.unit_cost * self.quantity_used
         return 0
 

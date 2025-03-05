@@ -38,14 +38,14 @@ class RecipeAdmin(admin.ModelAdmin):
 @admin.register(RecipeItem)
 class RecipeItemAdmin(admin.ModelAdmin):
     list_display = ("id", "recipe", "ingredient", "quantity_used", "unit", "material_cost_display")
-    list_editable = ("quantity_used", "unit")  # ✅ 목록에서 직접 수정 가능
     list_filter = ("recipe__store", "recipe", "ingredient")
     search_fields = ("recipe__name", "ingredient__name")
     ordering = ("id",)
 
-    # ✅ 상세 페이지에서 수정 가능하도록 설정
-    fields = ("name", "store", "sales_price_per_item", "production_quantity_per_batch", "recipe_img")  # 수정 가능 필드 지정
+    # ✅ RecipeItem에 존재하지 않는 필드를 fields에서 제거
+    fields = ("recipe", "ingredient", "quantity_used", "unit")  # ✅ store, sales_price_per_item 등 제거
 
+    # ✅ 개별 재료 원가 계산하여 표시
     def material_cost_display(self, obj):
         return f"{obj.material_cost:,.0f} 원" if obj.material_cost else "0 원"
     material_cost_display.short_description = "개별 원가"
