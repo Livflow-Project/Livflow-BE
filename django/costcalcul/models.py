@@ -2,6 +2,7 @@ from django.db import models
 from store.models import Store
 import os
 from uuid import uuid4
+from decimal import Decimal
 
 
 def recipe_image_upload_path(instance, filename):
@@ -34,8 +35,9 @@ class Recipe(models.Model):
 
     @property
     def cost_ratio(self):
+        """ ✅ 원가 비율 계산 (Decimal 변환) """
         if self.sales_price_per_item and self.material_cost_per_item:
-            return (self.material_cost_per_item / self.sales_price_per_item) * 100
+            return (self.material_cost_per_item / Decimal(self.sales_price_per_item)) * 100  # ✅ Decimal 변환
         return 0
 
 
