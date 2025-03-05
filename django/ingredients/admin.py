@@ -1,21 +1,30 @@
 from django.contrib import admin
 from .models import Ingredient
+from inventory.models import Inventory  # ✅ Inventory 모델 추가
 
-# ✅ 재료(Ingredient) 관리
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "store", "purchase_price", "purchase_quantity", "unit", "unit_cost_display", "vendor")
+    list_display = ("id", "name", "store", "purchase_price", "purchase_quantity", "unit", "vendor")
     list_filter = ("store", "unit", "vendor")
     search_fields = ("name", "store__name")
     ordering = ("id",)
 
-    def unit_cost_display(self, obj):
-        """ ✅ Django Admin에서 단가(unit_cost) 표시 (DB 저장 X) """
-        return round(obj.unit_cost, 2)  # 소수점 2자리까지 표시
-    unit_cost_display.short_description = "단가 (unit cost)"  # Admin 컬럼 제목
+    # ✅ Ingredient 저장 시 Inventory 자동 생성
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)  # ✅ 기본 저장 로직 실행
+        
+        # ✅ Inventory에 재료가 없으면 생성 (중복 방지)
+        inventory, created = Inventory.objects.get_or_create(
+            ingredient=obj,
+            defaults={
+                "remaining_stock": obj.purchase_quantity,  # ✅ 최초 구매량을 재고로 저장
+                "unit": obj.unit,
+                "unit_cost": obj.unit_cost,
+            }
+        )
 
-    # ✅ 수정 가능 필드 지정 (단가 제외)
-    fields = ("name", "store", "purchase_price", "purchase_quantity", "unit", "vendor", "notes")
-
-    # ✅ 단가(unit_cost) 읽기 전용 처리
-    readonly_fields = ("unit_cost_display",)
+        # ✅ 이미 존재하는 경우 (수정된 경우), 남은 재고 업데이트
+        if not created:
+            inventory.remaining_stock = obj.purchase_quantity
+            inventory.unit_cost = obj.unit_cost
+            inventory.save()
