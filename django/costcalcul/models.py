@@ -13,7 +13,7 @@ def recipe_image_upload_path(instance, filename):
 
 # 레시피(Recipe) 모델
 class Recipe(models.Model):
-    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="recipes")
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="recipes", default=1)
     name = models.CharField(max_length=255)
     sales_price_per_item = models.FloatField(null=True, blank=True)
     production_quantity_per_batch = models.IntegerField(default=1)
