@@ -9,7 +9,7 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ("name", "store__name")
     ordering = ("id",)
 
-    # ✅ Ingredient 저장 시 Inventory 자동 생성
+    # ✅ Ingredient 저장 시 Inventory 자동 생성/업데이트
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)  # ✅ 기본 저장 로직 실행
         
@@ -18,13 +18,10 @@ class IngredientAdmin(admin.ModelAdmin):
             ingredient=obj,
             defaults={
                 "remaining_stock": obj.purchase_quantity,  # ✅ 최초 구매량을 재고로 저장
-                "unit": obj.unit,
-                "unit_cost": obj.unit_cost,
             }
         )
 
         # ✅ 이미 존재하는 경우 (수정된 경우), 남은 재고 업데이트
         if not created:
             inventory.remaining_stock = obj.purchase_quantity
-            inventory.unit_cost = obj.unit_cost
             inventory.save()
