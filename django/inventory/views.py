@@ -8,10 +8,19 @@ from .serializers import InventorySerializer
 # ✅ 특정 상점의 재고 조회
 class StoreInventoryView(APIView):
     def get(self, request, store_id):
-        """ 특정 상점의 재고 목록 조회 """
+        """ 특정 상점의 재고 목록 조회 (unit_cost 포함) """
         inventories = Inventory.objects.filter(ingredient__store_id=store_id)
-        serializer = InventorySerializer(inventories, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        inventory_data = [
+            {
+                "ingredient_id": str(inv.ingredient.id),
+                "ingredient_name": inv.ingredient.name,
+                "remaining_stock": inv.remaining_stock,
+                "unit": inv.get_unit,
+                "unit_cost": inv.get_unit_cost,  # ✅ unit_cost 추가
+            }
+            for inv in inventories
+        ]
+        return Response(inventory_data, status=status.HTTP_200_OK)
 
 
 # ✅ 특정 재료 사용 (재고 차감)
