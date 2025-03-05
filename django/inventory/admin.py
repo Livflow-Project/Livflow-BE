@@ -3,13 +3,13 @@ from .models import Inventory
 
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
-    list_display = ("ingredient", "get_store", "remaining_stock", "received_stock", "used_stock", "get_unit")  
+    list_display = ("ingredient", "get_store", "remaining_stock", "get_unit", "get_received_stock", "get_used_stock")  
     search_fields = ("ingredient__name", "ingredient__store__name")  
     list_filter = ("ingredient__store",)  
     ordering = ("id",)
 
-    # ✅ 수정 가능 필드 지정 (store, unit 제거)
-    fields = ("ingredient", "received_stock", "used_stock", "remaining_stock")
+    # ✅ 수정 가능 필드 지정 (received_stock, used_stock 제거)
+    fields = ("ingredient", "remaining_stock")
 
     # ✅ 읽기 전용 필드 (remaining_stock 자동 계산)
     readonly_fields = ("remaining_stock",)
@@ -24,17 +24,12 @@ class InventoryAdmin(admin.ModelAdmin):
         return obj.ingredient.unit if obj.ingredient.unit else "No Unit"
     get_unit.short_description = "Unit"
 
-    # ✅ 저장할 때 재고 자동 계산
-    def save_model(self, request, obj, form, change):
-        # 기존 재고 불러오기 (없으면 0으로 설정)
-        old_stock = Inventory.objects.filter(id=obj.id).first()
-        previous_stock = old_stock.remaining_stock if old_stock else 0
+    def get_received_stock(self, obj):
+        """✅ 입고량을 보여주는 가상 필드 (예제 값, 실제 필드 없음)"""
+        return "수동 입력 필요"
+    get_received_stock.short_description = "입고량"
 
-        # `received_stock`과 `used_stock`이 None일 경우 0으로 처리하여 오류 방지
-        received_stock = obj.received_stock if obj.received_stock else 0
-        used_stock = obj.used_stock if obj.used_stock else 0
-
-        # 새로운 재고 계산 (기존 재고 + 입고량 - 사용량)
-        obj.remaining_stock = previous_stock + received_stock - used_stock
-
-        super().save_model(request, obj, form, change)
+    def get_used_stock(self, obj):
+        """✅ 사용량을 보여주는 가상 필드 (예제 값, 실제 필드 없음)"""
+        return "수동 입력 필요"
+    get_used_stock.short_description = "사용량"
