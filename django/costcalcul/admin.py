@@ -43,6 +43,9 @@ class RecipeItemAdmin(admin.ModelAdmin):
     search_fields = ("recipe__name", "ingredient__name")
     ordering = ("id",)
 
+    # ✅ 상세 페이지에서 수정 가능하도록 설정
+    fields = ("name", "store", "sales_price_per_item", "production_quantity_per_batch", "recipe_img")  # 수정 가능 필드 지정
+
     def material_cost_display(self, obj):
         return f"{obj.material_cost:,.0f} 원" if obj.material_cost else "0 원"
     material_cost_display.short_description = "개별 원가"
