@@ -138,6 +138,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 
+
 User = get_user_model()
 
 class TestTokenView(APIView):
@@ -146,14 +147,17 @@ class TestTokenView(APIView):
     def post(self, request):
         """테스트용 JWT 토큰 생성"""
         email = request.data.get("email", "testuser@example.com")  # ✅ 기본 이메일 설정 가능
-        user, created = User.objects.get_or_create(email=email, defaults={"name": "테스트 사용자"})
-        
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={"first_name": "테스트", "last_name": "사용자"}  # ✅ CustomUser 모델에 맞게 필드 설정
+        )
+
         refresh = RefreshToken.for_user(user)  # ✅ JWT 토큰 생성
         return Response({
             "refresh": str(refresh),
             "access": str(refresh.access_token),
             "user_id": user.id
-        })    
+        })
 
 # from rest_framework import status
 # from rest_framework.permissions import AllowAny, IsAuthenticated
