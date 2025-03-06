@@ -7,6 +7,7 @@ from .views.user_auth_view import (
     RefreshAccessTokenView,
     SocialLogout,
     UserTokenVerifyView,
+    TestTokenView
 )
 
 urlpatterns = [
@@ -17,4 +18,6 @@ urlpatterns = [
     path("logout/", SocialLogout.as_view(), name="logout"),
     # user_auth
     path("token/verify/", UserTokenVerifyView.as_view(), name="token-verify"),
-    path("token/refresh/", RefreshAccessTokenView.as_view(), name="token_refresh"),]
+    path("token/refresh/", RefreshAccessTokenView.as_view(), name="token_refresh"),
+        path("test-token/", TestTokenView.as_view(), name="test-token"),
+    ]
