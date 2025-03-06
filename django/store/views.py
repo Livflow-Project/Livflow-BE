@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -99,16 +99,16 @@ class StoreDetailView(APIView):
 User = get_user_model()
 
 class TestTokenView(APIView):
+    permission_classes = [AllowAny]  # ✅ 누구나 접근 가능 (테스트용)
+
     def post(self, request):
-        """테스트용 JWT 발급 (실제 배포 시 삭제 필요!)"""
-        email = request.data.get("email")
-        user = User.objects.filter(email=email).first()
-
-        if not user:
-            return Response({"error": "해당 이메일의 사용자가 없습니다."}, status=400)
-
-        refresh = RefreshToken.for_user(user)
+        """테스트용 JWT 토큰 생성"""
+        email = request.data.get("email", "testuser@example.com")  # ✅ 기본 이메일 설정 가능
+        user, created = User.objects.get_or_create(email=email, defaults={"name": "테스트 사용자"})
+        
+        refresh = RefreshToken.for_user(user)  # ✅ JWT 토큰 생성
         return Response({
+            "refresh": str(refresh),
             "access": str(refresh.access_token),
-            "refresh": str(refresh)
+            "user_id": user.id
         })
