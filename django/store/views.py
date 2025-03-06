@@ -94,21 +94,3 @@ class StoreDetailView(APIView):
         return Response({"message": "가게가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
 
-## 테스트용 토큰 발급(배포시 반드시 지울것)
-
-User = get_user_model()
-
-class TestTokenView(APIView):
-    permission_classes = [AllowAny]  # ✅ 누구나 접근 가능 (테스트용)
-
-    def post(self, request):
-        """테스트용 JWT 토큰 생성"""
-        email = request.data.get("email", "testuser@example.com")  # ✅ 기본 이메일 설정 가능
-        user, created = User.objects.get_or_create(email=email, defaults={"name": "테스트 사용자"})
-        
-        refresh = RefreshToken.for_user(user)  # ✅ JWT 토큰 생성
-        return Response({
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "user_id": user.id
-        })

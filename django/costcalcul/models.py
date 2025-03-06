@@ -14,12 +14,14 @@ def recipe_image_upload_path(instance, filename):
 
 # 레시피(Recipe) 모델
 class Recipe(models.Model):
+    id = models.UUIDField(default=uuid4, primary_key=True, editable=False)
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="recipes", default=1)
     name = models.CharField(max_length=255)
     sales_price_per_item = models.FloatField(null=True, blank=True)
     production_quantity_per_batch = models.IntegerField(default=1)
     recipe_img = models.ImageField(upload_to=recipe_image_upload_path, null=True, blank=True)  # ✅ 이미지 필드 추가
-
+    is_favorites = models.BooleanField(default=False)
+    
     def __str__(self):
         return self.name
 

@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db.models import Sum, Count
-
+from uuid import UUID
 from store.models import Store, Transaction  
 from .models import Category
 from .serializers import TransactionSerializer, CategorySerializer
@@ -23,6 +23,7 @@ class LedgerTransactionListCreateView(APIView):
         responses={200: TransactionSerializer(many=True)},
     )
     def get(self, request, store_id):
+        store_id = UUID(store_id)
         store = get_object_or_404(Store, id=store_id, user=request.user)  
         transactions = Transaction.objects.filter(store=store)  
         serializer = TransactionSerializer(transactions, many=True)

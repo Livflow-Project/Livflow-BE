@@ -61,7 +61,7 @@ class StoreRecipeDetailView(APIView):
                 "ingredient_id": str(item.ingredient.id),  
                 "ingredient_name": item.ingredient.name,
                 "unit_price": item.ingredient.unit_cost,  
-                "quantity_used": item.quantity_used,
+                "required_amount": item.quantity_used, 
                 "unit": item.unit
             }
             for item in ingredients

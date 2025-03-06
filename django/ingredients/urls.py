@@ -1,10 +1,7 @@
 from django.urls import path
-from .views import (
-    StoreInventoryView,  # ✅ GET, POST 함께 처리
-    IngredientDetailView,
-)
+from .views import StoreInventoryView, IngredientDetailView
 
 urlpatterns = [
-    path('<int:store_id>/', StoreInventoryView.as_view(), name='store-ingredients'),  # ✅ GET & POST
-    path('<int:store_id>/<int:ingredient_id>/', IngredientDetailView.as_view(), name='ingredient-detail'),  # ✅ GET, PUT, DELETE
+    path('<uuid:store_id>/', StoreInventoryView.as_view(), name='store-ingredients'),  # ✅ UUID 적용
+    path('<uuid:store_id>/<uuid:ingredient_id>/', IngredientDetailView.as_view(), name='ingredient-detail'),  # ✅ UUID 적용
 ]
