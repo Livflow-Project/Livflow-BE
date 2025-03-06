@@ -1,22 +1,18 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+from django.contrib.auth import get_user_model
 from .models import Store
 from .serializers import StoreSerializer
-
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class StoreListView(APIView):
     #permission_classes = [IsAuthenticated]
-    def get_permissions(self):
-
-        if self.request.method == "POST":
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    
     @swagger_auto_schema(
         operation_summary="모든 가게 목록 조회",
         operation_description="현재 로그인한 사용자의 모든 가게 목록을 반환합니다.",
@@ -96,3 +92,23 @@ class StoreDetailView(APIView):
         store = get_object_or_404(Store, id=id, user=request.user)
         store.delete()
         return Response({"message": "가게가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+
+
+## 테스트용 토큰 발급(배포시 반드시 지울것)
+
+User = get_user_model()
+
+class TestTokenView(APIView):
+    def post(self, request):
+        """테스트용 JWT 발급 (실제 배포 시 삭제 필요!)"""
+        email = request.data.get("email")
+        user = User.objects.filter(email=email).first()
+
+        if not user:
+            return Response({"error": "해당 이메일의 사용자가 없습니다."}, status=400)
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        })
