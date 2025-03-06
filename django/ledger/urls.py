@@ -1,13 +1,17 @@
 from django.urls import path
 from .views import (
     LedgerTransactionListCreateView, LedgerTransactionDetailView,
-    CategoryListCreateView, CategoryDetailView
+    CategoryListCreateView, CategoryDetailView,
+    LedgerCalendarView, LedgerDailyTransactionView
 )
 
 urlpatterns = [
     # 거래 내역 목록 조회 & 생성 (쿼리 파라미터로 특정 날짜 필터링 가능)
     path('<int:store_id>/transactions/', LedgerTransactionListCreateView.as_view(), name='ledger-transaction-list-create'),
     path('<int:store_id>/transactions/<uuid:transaction_id>/', LedgerTransactionDetailView.as_view(), name='ledger-transaction-detail'),
+
+    path('<int:store_id>/calendar/', LedgerCalendarView.as_view(), name='ledger-calendar'),  # ✅ 추가됨
+    path('<int:store_id>/transactions/daily/', LedgerDailyTransactionView.as_view(), name='ledger-daily-transactions'),  # ✅ 추가됨
 
     # 카테고리 관련 URL
     path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),

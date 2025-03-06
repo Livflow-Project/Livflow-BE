@@ -12,6 +12,8 @@ from .models import Category
 from .serializers import TransactionSerializer, CategorySerializer
 
 
+
+
 # 🔹 1️⃣ 거래 내역 목록 조회 & 생성
 class LedgerTransactionListCreateView(APIView):  
     permission_classes = [IsAuthenticated]
@@ -137,3 +139,100 @@ class CategoryDetailView(APIView):
         category = get_object_or_404(Category, id=id)
         category.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+
+
+# ✅ 1️⃣ GET /ledger/{storeId}/calendar?year=YYYY&month=MM
+class LedgerCalendarView(APIView):  
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, store_id):
+        """ 특정 월의 거래 내역을 조회하여, 달력 & 차트 데이터 반환 """
+        year = request.GET.get("year")
+        month = request.GET.get("month")
+
+        if not year or not month:
+            return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ 상점 확인
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+
+        # ✅ 해당 월의 모든 거래 조회
+        transactions = Transaction.objects.filter(
+            store=store,
+            date__year=year,
+            date__month=month
+        )
+
+        # ✅ 날짜별 수입/지출 여부 정리
+        day_summary = {}
+        for t in transactions:
+            day = t.date.day
+            if day not in day_summary:
+                day_summary[day] = {"hasIncome": False, "hasExpense": False}
+
+            if t.transaction_type == "income":
+                day_summary[day]["hasIncome"] = True
+            else:
+                day_summary[day]["hasExpense"] = True
+
+        days_list = [{"day": day, **summary} for day, summary in day_summary.items()]
+
+        # ✅ 카테고리별 총 수입/지출 계산
+        category_summary = transactions.values("transaction_type", "category__name").annotate(
+            total=Sum("amount")
+        ).order_by("-total")[:5]  # ✅ 상위 5개 카테고리만 반환
+
+        category_data = [
+            {"type": c["transaction_type"], "category": c["category__name"], "total": c["total"]}
+            for c in category_summary
+        ]
+
+        # ✅ 최종 응답 데이터
+        response_data = {
+            "days": days_list,
+            "chart": {
+                "totalIncome": transactions.filter(transaction_type="income").aggregate(Sum("amount"))["amount__sum"] or 0,
+                "totalExpense": transactions.filter(transaction_type="expense").aggregate(Sum("amount"))["amount__sum"] or 0,
+                "categories": category_data,
+            }
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+# ✅ 2️⃣ GET /ledger/{storeId}/transactions?year=YYYY&month=MM&day=DD
+class LedgerDailyTransactionView(APIView):  
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, store_id):
+        """ 특정 날짜의 모든 거래 내역 조회 """
+        year = request.GET.get("year")
+        month = request.GET.get("month")
+        day = request.GET.get("day")
+
+        if not year or not month or not day:
+            return Response({"error": "year, month, day 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ 상점 확인
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+
+        # ✅ 해당 날짜의 거래 내역 조회
+        transactions = Transaction.objects.filter(
+            store=store,
+            date__year=year,
+            date__month=month,
+            date__day=day
+        )
+
+        # ✅ 거래 내역을 JSON 형태로 변환
+        transaction_list = [
+            {
+                "transaction_id": str(t.id),
+                "type": t.transaction_type,
+                "category": t.category.name,
+                "detail": t.description or "",
+                "cost": t.amount
+            }
+            for t in transactions
+        ]
+
+        return Response(transaction_list, status=status.HTTP_200_OK)
