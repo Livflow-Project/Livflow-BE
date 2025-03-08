@@ -8,11 +8,12 @@ def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity
     ingredient_costs = []
 
     for ingredient in ingredients:
-        unit_price = ingredient.get('unit_price', Decimal("0"))  # ✅ KeyError 방지
-        required_amount = ingredient.get('quantity_used', Decimal("0"))
+        unit_price = Decimal(str(ingredient.get('unit_price', "0")))  # ✅ KeyError 방지 + Decimal 변환
+        required_amount = Decimal(str(ingredient.get('quantity_used', "0")))
 
-        # ✅ unit_price가 정확한지 로그 확인
-        logger.info(f"Ingredient: {ingredient['ingredient_name']}, Unit Price: {unit_price}, Required Amount: {required_amount}")
+        # ✅ unit_price와 required_amount의 값이 정확한지 디버깅 로그 추가
+        logger.debug(f"[DEBUG] Ingredient: {ingredient.get('ingredient_name', 'Unknown')}, "
+                     f"Unit Price: {unit_price}, Required Amount: {required_amount}")
 
         cost = round(required_amount * unit_price, 2)  
         ingredient_costs.append({
@@ -23,13 +24,17 @@ def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity
         })
         total_material_cost += cost  
 
-    logger.info(f"Total Material Cost: {total_material_cost}")  
+    # ✅ 총 원가 로그 추가
+    logger.debug(f"[DEBUG] Total Material Cost: {total_material_cost}")  
 
     safe_production_quantity = max(Decimal("1"), Decimal(str(production_quantity_per_batch)))
     cost_per_item = round(total_material_cost / safe_production_quantity, 2)  
 
     total_sales_revenue = Decimal(str(sales_price_per_item)) * safe_production_quantity
     material_ratio = round(total_material_cost / total_sales_revenue, 2) if total_sales_revenue != 0 else 0
+
+    # ✅ 최종 계산된 값 로그 추가
+    logger.debug(f"[DEBUG] Cost Per Item: {cost_per_item}, Material Ratio: {material_ratio}")
 
     return {
         "ingredient_costs": ingredient_costs,  
