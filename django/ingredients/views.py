@@ -6,6 +6,9 @@ from .models import Ingredient
 from inventory.models import Inventory  # ✅ Inventory 모델 사용
 from .serializers import IngredientSerializer
 from inventory.serializers import InventorySerializer
+from store.models import Store  # ✅ Store 모델 import 추가
+
+
 
 class StoreIngredientView(APIView):
     def get(self, request, store_id):
@@ -29,22 +32,22 @@ class StoreIngredientView(APIView):
 
     def post(self, request, store_id):
         """ 특정 상점에 재료 추가 """
+        store = get_object_or_404(Store, id=store_id)  # ✅ Store 존재 여부 확인
         data = request.data.copy()
-        data["store"] = store_id  # ✅ Store ID 추가
+        data["store"] = store.id  # ✅ Store ID를 명시적으로 추가
+
         serializer = IngredientSerializer(data=data)
-
         if serializer.is_valid():
-            ingredient = serializer.save()  # ✅ Ingredient 저장
+            ingredient = serializer.save(store=store)  # ✅ store_id를 Ingredient에 저장
 
-            # ✅ Inventory 자동 추가 (ingredient_id 전달 문제 해결)
+            # ✅ Inventory 자동 추가
             inventory_data = {
-                "ingredient": ingredient.id,  # ✅ Ingredient ID 연결
+                "ingredient": ingredient.id,
                 "remaining_stock": ingredient.purchase_quantity,
             }
             inventory_serializer = InventorySerializer(data=inventory_data)
-
             if inventory_serializer.is_valid():
-                inventory_serializer.save()  # ✅ 정상적으로 Inventory 저장
+                inventory_serializer.save()
             else:
                 # ✅ Inventory 저장 실패 시 Ingredient 삭제 (데이터 정합성 유지)
                 ingredient.delete()
