@@ -15,6 +15,7 @@ class RecipeItemSerializer(serializers.ModelSerializer):
 # ✅ 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
     recipe_name = serializers.CharField(source="name")  # ✅ `recipe_name`을 `name`으로 매핑
+    recipe_cost = serializers.FloatField(source="sales_price_per_item")  # ✅ `recipe_cost` → `sales_price_per_item` 변환
     recipe_img = serializers.ImageField(required=False)  # ✅ 선택값 처리
     ingredients = RecipeItemSerializer(many=True, write_only=True)  # ✅ Nested Serializer 추가
 
@@ -22,7 +23,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ['id', 'recipe_name', 'recipe_cost', 'recipe_img', 'is_favorites', 'ingredients', 'production_quantity']
         read_only_fields = ['id']
-
+    
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  # ✅ 재료 리스트 추출
         recipe = Recipe.objects.create(**validated_data)
