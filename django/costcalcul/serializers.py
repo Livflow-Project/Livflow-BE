@@ -54,13 +54,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
             inventory, created = Inventory.objects.get_or_create(
                 ingredient=ingredient,
-                defaults={"remaining_stock": Decimal(str(ingredient.purchase_quantity))}  # ✅ Decimal 변환
+                defaults={"remaining_stock": ingredient.purchase_quantity}
             )
 
-            required_amount = Decimal(str(ingredient_data["quantity_used"]))
-
-            # ✅ `inventory.remaining_stock`을 Decimal로 변환
-            inventory.remaining_stock = Decimal(str(inventory.remaining_stock))
+            # ✅ 모든 연산에 Decimal 적용
+            inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ 여기에 추가!!
+            required_amount = Decimal(str(ingredient_data["quantity_used"]))  
+            unit_price = Decimal(str(ingredient.unit_cost))  
 
             if inventory.remaining_stock < required_amount:
                 raise serializers.ValidationError(
@@ -77,28 +77,21 @@ class RecipeSerializer(serializers.ModelSerializer):
                 unit=ingredient_data["unit"]
             )
 
-            # ✅ unit_price를 Decimal로 유지
-            unit_price = Decimal(str(ingredient.unit_cost))
-            logger.info(f"Ingredient: {ingredient.name}, Unit Cost: {unit_price}, Required Amount: {required_amount}")
-
+            # ✅ `ingredient_costs`에 추가 (모든 값 Decimal 변환)
             ingredient_costs.append({
                 "ingredient_id": str(ingredient.id),
                 "ingredient_name": ingredient.name,
-                "unit_price": unit_price,  
+                "unit_price": unit_price,  # ✅ Decimal 유지
                 "quantity_used": required_amount,
                 "unit": ingredient_data["unit"]
             })
 
-        # ✅ 원가 계산 함수 호출
         cost_data = calculate_recipe_cost(
             ingredients=ingredient_costs,
-            sales_price_per_item=recipe.sales_price_per_item,
-            production_quantity_per_batch=recipe.production_quantity_per_batch
+            sales_price_per_item=Decimal(str(recipe.sales_price_per_item)),  # ✅ Decimal 변환
+            production_quantity_per_batch=Decimal(str(recipe.production_quantity_per_batch))  # ✅ Decimal 변환
         )
 
-        logger.info(f"Calculated Cost Data: {cost_data}")
-
-        # ✅ 응답에 포함될 값 설정 (DB에는 저장되지 않음)
         recipe.total_ingredient_cost = cost_data["total_material_cost"]
         recipe.production_cost = cost_data["cost_per_item"]
 
