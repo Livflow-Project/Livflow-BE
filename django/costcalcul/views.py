@@ -9,6 +9,8 @@ from ingredients.models import Ingredient  # ✅ Ingredient 모델 import
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from inventory.models import Inventory
 from django.db import transaction
+from .utils import calculate_recipe_cost
+
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
@@ -55,14 +57,26 @@ class StoreRecipeListView(APIView):
                             unit=ingredient_data["unit"]
                         )
 
+                    # ✅ 원가 계산
+                    cost_data = calculate_recipe_cost(
+                        ingredients=ingredients,
+                        sales_price_per_item=recipe.sales_price_per_item,
+                        production_quantity_per_batch=recipe.production_quantity_per_batch
+                    )
+
+                    response_data = serializer.data
+                    response_data.update({
+                        "total_ingredient_cost": cost_data["total_material_cost"],
+                        "production_cost": cost_data["cost_per_item"],
+                    })
+
                 except ValueError as e:
                     transaction.set_rollback(True)  # ✅ 롤백 처리
                     return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # ✅ 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
