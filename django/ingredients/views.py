@@ -27,25 +27,31 @@ class StoreIngredientView(APIView):
         ]
         return Response(ingredient_data, status=status.HTTP_200_OK)
 
-
     def post(self, request, store_id):
         """ 특정 상점에 재료 추가 """
-        data = request.data.copy()  # ✅ 원본 데이터 복사
+        data = request.data.copy()
+        data["store"] = store_id  # ✅ Store ID 추가
         serializer = IngredientSerializer(data=data)
 
         if serializer.is_valid():
-            ingredient = serializer.save(store_id=store_id)  # ✅ store_id 직접 저장
+            ingredient = serializer.save()  # ✅ Ingredient 저장
 
-            # ✅ Inventory 자동 추가 (재료 등록 시 인벤토리 생성)
+            # ✅ Inventory 자동 추가 (ingredient_id 전달 문제 해결)
             inventory_data = {
-                "ingredient": ingredient.id,
-                "remaining_stock": ingredient.purchase_quantity,  # ✅ 최초 구매량을 재고로 설정
+                "ingredient": ingredient.id,  # ✅ Ingredient ID 연결
+                "remaining_stock": ingredient.purchase_quantity,
             }
             inventory_serializer = InventorySerializer(data=inventory_data)
+
             if inventory_serializer.is_valid():
-                inventory_serializer.save()
+                inventory_serializer.save()  # ✅ 정상적으로 Inventory 저장
+            else:
+                # ✅ Inventory 저장 실패 시 Ingredient 삭제 (데이터 정합성 유지)
+                ingredient.delete()
+                return Response(inventory_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
