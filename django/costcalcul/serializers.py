@@ -3,6 +3,8 @@ from .models import Recipe, RecipeItem
 from inventory.models import Inventory
 from ingredients.models import Ingredient  # ✅ Ingredient 모델 추가
 from django.shortcuts import get_object_or_404
+from decimal import Decimal 
+
 
 # ✅ 레시피 재료(RecipeItem) 시리얼라이저 (Nested Serializer)
 class RecipeItemSerializer(serializers.ModelSerializer):
@@ -29,7 +31,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
         
     def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients', [])  # ✅ 재료 리스트 추출
+        ingredients_data = validated_data.pop('ingredients', [])  
         recipe = Recipe.objects.create(**validated_data)
 
         for ingredient_data in ingredients_data:
@@ -38,22 +40,25 @@ class RecipeSerializer(serializers.ModelSerializer):
             # ✅ Inventory 확인 후, 없으면 자동 생성
             inventory, created = Inventory.objects.get_or_create(
                 ingredient=ingredient,
-                defaults={"remaining_stock": ingredient.purchase_quantity}  # ✅ 기본값 설정
+                defaults={"remaining_stock": ingredient.purchase_quantity}
             )
 
+            # ✅ float → Decimal 변환
+            required_amount = Decimal(str(ingredient_data["quantity_used"]))
+
             # ✅ 사용량 차감 (재고가 충분한지 체크)
-            if inventory.remaining_stock < ingredient_data["quantity_used"]:
+            if inventory.remaining_stock < required_amount:
                 raise serializers.ValidationError(
                     f"{ingredient.name} 재고가 부족합니다. (남은 재고: {inventory.remaining_stock})"
                 )
 
-            inventory.remaining_stock -= ingredient_data["quantity_used"]  # ✅ 재고 차감
+            inventory.remaining_stock -= required_amount  # ✅ Decimal 값으로 차감
             inventory.save()
 
             RecipeItem.objects.create(
                 recipe=recipe,
                 ingredient=ingredient,
-                quantity_used=ingredient_data["quantity_used"],
+                quantity_used=required_amount,  # ✅ Decimal 타입 유지
                 unit=ingredient_data["unit"]
             )
 
