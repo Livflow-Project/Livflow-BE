@@ -29,19 +29,21 @@ class StoreIngredientView(APIView):
 
 
     def post(self, request, store_id):
-        """특정 상점에 재료 추가"""
-        data = request.data.copy()
-        data["store"] = store_id  # ✅ store_id 직접 추가
+        """ 특정 상점에 재료 추가 """
+        data = request.data.copy()  # ✅ 원본 데이터 복사
         serializer = IngredientSerializer(data=data)
 
         if serializer.is_valid():
-            ingredient = serializer.save()
+            ingredient = serializer.save(store_id=store_id)  # ✅ store_id 직접 저장
 
-            # ✅ Inventory 자동 추가 (초기 재고량 설정)
-            Inventory.objects.create(
-                ingredient=ingredient,
-                remaining_stock=ingredient.purchase_quantity  # ✅ 최초 재고는 구매한 용량과 동일
-            )
+            # ✅ Inventory 자동 추가 (재료 등록 시 인벤토리 생성)
+            inventory_data = {
+                "ingredient": ingredient.id,
+                "remaining_stock": ingredient.purchase_quantity,  # ✅ 최초 구매량을 재고로 설정
+            }
+            inventory_serializer = InventorySerializer(data=inventory_data)
+            if inventory_serializer.is_valid():
+                inventory_serializer.save()
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
