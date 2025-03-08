@@ -18,6 +18,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     recipe_cost = serializers.FloatField(source="sales_price_per_item")  # ✅ `recipe_cost` → `sales_price_per_item` 변환
     recipe_img = serializers.ImageField(required=False)  # ✅ 선택값 처리
     ingredients = RecipeItemSerializer(many=True, write_only=True)  # ✅ Nested Serializer 추가
+    production_quantity = serializers.IntegerField(source="production_quantity_per_batch")
 
     class Meta:
         model = Recipe
