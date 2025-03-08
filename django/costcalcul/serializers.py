@@ -36,7 +36,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             RecipeItem.objects.create(
                 recipe=recipe,
                 ingredient=ingredient,
-                quantity_used=ingredient_data["required_amount"],
+                quantity_used=ingredient_data["quantity_used"],
                 unit=ingredient_data["unit"]
             )
 
