@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Recipe, RecipeItem
+from inventory.models import Inventory
 from ingredients.models import Ingredient  # ✅ Ingredient 모델 추가
+from django.shortcuts import get_object_or_404
 
 # ✅ 레시피 재료(RecipeItem) 시리얼라이저 (Nested Serializer)
 class RecipeItemSerializer(serializers.ModelSerializer):
@@ -25,14 +27,29 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ['id', 'recipe_name', 'recipe_cost', 'recipe_img', 'is_favorites', 'ingredients', 'production_quantity']
         read_only_fields = ['id']
-    
+        
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  # ✅ 재료 리스트 추출
         recipe = Recipe.objects.create(**validated_data)
 
-        # ✅ 재료 등록
         for ingredient_data in ingredients_data:
-            ingredient = Ingredient.objects.get(id=ingredient_data["ingredient_id"])
+            ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
+
+            # ✅ Inventory 확인 후, 없으면 자동 생성
+            inventory, created = Inventory.objects.get_or_create(
+                ingredient=ingredient,
+                defaults={"remaining_stock": ingredient.purchase_quantity}  # ✅ 기본값 설정
+            )
+
+            # ✅ 사용량 차감 (재고가 충분한지 체크)
+            if inventory.remaining_stock < ingredient_data["quantity_used"]:
+                raise serializers.ValidationError(
+                    f"{ingredient.name} 재고가 부족합니다. (남은 재고: {inventory.remaining_stock})"
+                )
+
+            inventory.remaining_stock -= ingredient_data["quantity_used"]  # ✅ 재고 차감
+            inventory.save()
+
             RecipeItem.objects.create(
                 recipe=recipe,
                 ingredient=ingredient,
