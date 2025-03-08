@@ -7,6 +7,7 @@ from decimal import Decimal
 from .utils import calculate_recipe_cost
 import logging
 
+logger = logging.getLogger(__name__)
 
 # ✅ 레시피 재료(RecipeItem) 시리얼라이저 (Nested Serializer)
 class RecipeItemSerializer(serializers.ModelSerializer):
@@ -24,6 +25,7 @@ class RecipeItemSerializer(serializers.ModelSerializer):
         """✅ Ingredient의 unit_cost를 unit_price로 변환"""
         return float(obj.ingredient.unit_cost) if obj.ingredient else 0
 
+
 # ✅ 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
     recipe_name = serializers.CharField(source="name")
@@ -31,7 +33,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     recipe_img = serializers.ImageField(required=False)
     ingredients = RecipeItemSerializer(many=True, write_only=True)  
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch")
-    
+
     # ✅ 추가 필드 (응답에 포함되지만 DB에는 저장되지 않음)
     total_ingredient_cost = serializers.SerializerMethodField()
     production_cost = serializers.SerializerMethodField()
@@ -40,10 +42,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ['id', 'recipe_name', 'recipe_cost', 'recipe_img', 'is_favorites', 'ingredients', 'production_quantity', 'total_ingredient_cost', 'production_cost']
         read_only_fields = ['id']
-        
-        
-        
-    logger = logging.getLogger(__name__)
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
@@ -56,10 +54,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
             inventory, created = Inventory.objects.get_or_create(
                 ingredient=ingredient,
-                defaults={"remaining_stock": ingredient.purchase_quantity}
+                defaults={"remaining_stock": Decimal(str(ingredient.purchase_quantity))}  # ✅ Decimal 변환
             )
 
             required_amount = Decimal(str(ingredient_data["quantity_used"]))
+
+            # ✅ `inventory.remaining_stock`을 Decimal로 변환
+            inventory.remaining_stock = Decimal(str(inventory.remaining_stock))
 
             if inventory.remaining_stock < required_amount:
                 raise serializers.ValidationError(
@@ -76,18 +77,19 @@ class RecipeSerializer(serializers.ModelSerializer):
                 unit=ingredient_data["unit"]
             )
 
-            # ✅ unit_price를 float이 아닌 Decimal로 변환 후 확인
+            # ✅ unit_price를 Decimal로 유지
             unit_price = Decimal(str(ingredient.unit_cost))
             logger.info(f"Ingredient: {ingredient.name}, Unit Cost: {unit_price}, Required Amount: {required_amount}")
 
             ingredient_costs.append({
                 "ingredient_id": str(ingredient.id),
                 "ingredient_name": ingredient.name,
-                "unit_price": unit_price,  # ✅ Decimal 유지
+                "unit_price": unit_price,  
                 "quantity_used": required_amount,
                 "unit": ingredient_data["unit"]
             })
 
+        # ✅ 원가 계산 함수 호출
         cost_data = calculate_recipe_cost(
             ingredients=ingredient_costs,
             sales_price_per_item=recipe.sales_price_per_item,
@@ -96,17 +98,16 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         logger.info(f"Calculated Cost Data: {cost_data}")
 
-        # ✅ DB 저장 안하고 응답 데이터에 포함
+        # ✅ 응답에 포함될 값 설정 (DB에는 저장되지 않음)
         recipe.total_ingredient_cost = cost_data["total_material_cost"]
         recipe.production_cost = cost_data["cost_per_item"]
 
         return recipe
-    
+
     def get_total_ingredient_cost(self, obj):
-        """✅ 응답에 `total_ingredient_cost` 추가"""
-        return getattr(obj, "total_ingredient_cost", None)
+        """✅ 응답에 `total_ingredient_cost` 추가 (None 방지)"""
+        return getattr(obj, "total_ingredient_cost", 0)
 
     def get_production_cost(self, obj):
-        """✅ 응답에 `production_cost` 추가"""
-        return getattr(obj, "production_cost", None)
-
+        """✅ 응답에 `production_cost` 추가 (None 방지)"""
+        return getattr(obj, "production_cost", 0)
