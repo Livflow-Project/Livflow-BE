@@ -1,18 +1,18 @@
+import logging
 from decimal import Decimal
 
+logger = logging.getLogger(__name__)
+
 def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity_per_batch):
-    """
-    레시피 비용 계산 함수
-    - ingredients: 단가 포함한 재료 정보 리스트
-    - sales_price_per_item: 개당 판매 가격
-    - production_quantity_per_batch: 한 배합당 생산 개수
-    """
     total_material_cost = Decimal("0")  
     ingredient_costs = []
 
     for ingredient in ingredients:
-        unit_price = Decimal(str(ingredient.get('unit_price', 0)))  # ✅ KeyError 방지
-        required_amount = Decimal(str(ingredient.get('quantity_used', 0)))  
+        unit_price = ingredient.get('unit_price', Decimal("0"))  # ✅ KeyError 방지
+        required_amount = ingredient.get('quantity_used', Decimal("0"))
+
+        # ✅ unit_price가 정확한지 로그 확인
+        logger.info(f"Ingredient: {ingredient['ingredient_name']}, Unit Price: {unit_price}, Required Amount: {required_amount}")
 
         cost = round(required_amount * unit_price, 2)  
         ingredient_costs.append({
@@ -22,6 +22,8 @@ def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity
             "cost": float(cost)
         })
         total_material_cost += cost  
+
+    logger.info(f"Total Material Cost: {total_material_cost}")  
 
     safe_production_quantity = max(Decimal("1"), Decimal(str(production_quantity_per_batch)))
     cost_per_item = round(total_material_cost / safe_production_quantity, 2)  

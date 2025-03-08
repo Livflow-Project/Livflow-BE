@@ -5,6 +5,8 @@ from ingredients.models import Ingredient
 from django.shortcuts import get_object_or_404
 from decimal import Decimal
 from .utils import calculate_recipe_cost
+import logging
+
 
 # ✅ 레시피 재료(RecipeItem) 시리얼라이저 (Nested Serializer)
 class RecipeItemSerializer(serializers.ModelSerializer):
@@ -39,6 +41,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = ['id', 'recipe_name', 'recipe_cost', 'recipe_img', 'is_favorites', 'ingredients', 'production_quantity', 'total_ingredient_cost', 'production_cost']
         read_only_fields = ['id']
         
+        
+        
+    logger = logging.getLogger(__name__)
+
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
         recipe = Recipe.objects.create(**validated_data)
@@ -70,11 +76,14 @@ class RecipeSerializer(serializers.ModelSerializer):
                 unit=ingredient_data["unit"]
             )
 
-            # ✅ ingredient_costs에 unit_price 포함
+            # ✅ unit_price를 float이 아닌 Decimal로 변환 후 확인
+            unit_price = Decimal(str(ingredient.unit_cost))
+            logger.info(f"Ingredient: {ingredient.name}, Unit Cost: {unit_price}, Required Amount: {required_amount}")
+
             ingredient_costs.append({
                 "ingredient_id": str(ingredient.id),
                 "ingredient_name": ingredient.name,
-                "unit_price": Decimal(str(ingredient.unit_cost)),  
+                "unit_price": unit_price,  # ✅ Decimal 유지
                 "quantity_used": required_amount,
                 "unit": ingredient_data["unit"]
             })
@@ -85,7 +94,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             production_quantity_per_batch=recipe.production_quantity_per_batch
         )
 
-        # ✅ DB에 저장하지 않고 응답에 포함됨
+        logger.info(f"Calculated Cost Data: {cost_data}")
+
+        # ✅ DB 저장 안하고 응답 데이터에 포함
         recipe.total_ingredient_cost = cost_data["total_material_cost"]
         recipe.production_cost = cost_data["cost_per_item"]
 
