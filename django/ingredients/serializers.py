@@ -12,8 +12,8 @@ class IngredientSerializer(serializers.ModelSerializer):
             "id", "name", "purchase_price", "purchase_quantity",
             "unit", "unit_cost", "vendor", "notes", "store"
         ]
-        read_only_fields = ["unit_cost", "store"]
+        read_only_fields = ["unit_cost"]  # ✅ store를 read_only에서 제외
 
     # ✅ 단가(unit_cost) 계산
     def get_unit_cost(self, obj):
-        return calculate_unit_price(obj.purchase_price, obj.purchase_quantity)
+        return obj.unit_cost

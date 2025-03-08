@@ -6,7 +6,8 @@ from ingredients.models import Ingredient  # ✅ Ingredient 모델 추가
 class RecipeItemSerializer(serializers.ModelSerializer):
     ingredient_id = serializers.UUIDField(write_only=True)  # ✅ 프론트에서 ingredient_id만 받도록 설정
     required_amount = serializers.FloatField(source="quantity_used")  # ✅ 필드명 변환
-
+    unit = serializers.CharField(required=True)
+    
     class Meta:
         model = RecipeItem
         fields = ['id', 'ingredient_id', 'required_amount', 'unit']

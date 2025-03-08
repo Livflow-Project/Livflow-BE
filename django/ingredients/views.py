@@ -7,43 +7,41 @@ from inventory.models import Inventory  # ✅ Inventory 모델 사용
 from .serializers import IngredientSerializer
 from inventory.serializers import InventorySerializer
 
-class StoreInventoryView(APIView):
+class StoreIngredientView(APIView):
     def get(self, request, store_id):
-        """특정 상점의 모든 재료 조회 (Inventory 기준)"""
-        inventories = Inventory.objects.filter(ingredient__store_id=store_id)  # ✅ Inventory 모델에서 조회
+        """ 특정 상점의 모든 재료 조회 (Ingredient 기준) """
+        ingredients = Ingredient.objects.filter(store_id=store_id)
 
-        inventory_data = [
+        ingredient_data = [
             {
-                "ingredient_id": str(inv.ingredient.id),  # ✅ UUID 변환
-                "ingredient_name": inv.ingredient.name,
-                "ingredient_cost": inv.ingredient.purchase_price,  # ✅ 재료 가격
-                "capacity": inv.remaining_stock,  # ✅ 남은 재고 용량
-                "unit": inv.ingredient.unit,  
-                "unit_cost": inv.ingredient.unit_cost,  # ✅ 자동 계산된 단가
-                "shop": inv.ingredient.vendor if inv.ingredient.vendor else None,  # ✅ 선택값
-                "ingredient_detail": inv.ingredient.notes if inv.ingredient.notes else None,  # ✅ 선택값
+                "ingredient_id": str(ingredient.id),
+                "ingredient_name": ingredient.name,
+                "ingredient_cost": ingredient.purchase_price,
+                "capacity": ingredient.purchase_quantity,  # ✅ 원래 등록된 구매 용량 기준
+                "unit": ingredient.unit,
+                "unit_cost": ingredient.unit_cost,  
+                "shop": ingredient.vendor if ingredient.vendor else None,
+                "ingredient_detail": ingredient.notes if ingredient.notes else None,
             }
-            for inv in inventories
+            for ingredient in ingredients
         ]
-        return Response(inventory_data, status=status.HTTP_200_OK)
+        return Response(ingredient_data, status=status.HTTP_200_OK)
+
 
     def post(self, request, store_id):
         """특정 상점에 재료 추가"""
         data = request.data.copy()
-        data["store"] = store_id
+        data["store"] = store_id  # ✅ store_id 직접 추가
         serializer = IngredientSerializer(data=data)
 
         if serializer.is_valid():
-            ingredient = serializer.save()  # ✅ Ingredient 저장
+            ingredient = serializer.save()
 
-            # ✅ Inventory 자동 추가
-            inventory_data = {
-                "ingredient": ingredient.id,
-                "remaining_stock": ingredient.purchase_quantity,
-            }
-            inventory_serializer = InventorySerializer(data=inventory_data)
-            if inventory_serializer.is_valid():
-                inventory_serializer.save()
+            # ✅ Inventory 자동 추가 (초기 재고량 설정)
+            Inventory.objects.create(
+                ingredient=ingredient,
+                remaining_stock=ingredient.purchase_quantity  # ✅ 최초 재고는 구매한 용량과 동일
+            )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
