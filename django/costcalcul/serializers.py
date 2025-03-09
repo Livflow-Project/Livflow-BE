@@ -35,9 +35,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     recipe_img = serializers.ImageField(required=False)
     ingredients = RecipeItemSerializer(many=True, write_only=True)  
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch")
+    total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
-    total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2)
-    production_cost = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
     class Meta:
