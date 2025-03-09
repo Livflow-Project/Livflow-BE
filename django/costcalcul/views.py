@@ -32,11 +32,11 @@ class StoreRecipeListView(APIView):
     def post(self, request, store_id):
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
-            with transaction.atomic():  # ✅ 트랜잭션 적용 (모든 데이터가 정상적으로 처리되도록)
+            with transaction.atomic():
                 recipe = serializer.save(store_id=store_id)
 
                 ingredients = request.data.get("ingredients", [])
-                inventory_updates = []  # ✅ 롤백을 위한 재고 변경 내역 저장
+                inventory_updates = []
                 
                 try:
                     for ingredient_data in ingredients:
@@ -44,10 +44,10 @@ class StoreRecipeListView(APIView):
                         inventory = get_object_or_404(Inventory, ingredient=ingredient)
 
                         if inventory.remaining_stock < ingredient_data["required_amount"]:
-                            raise ValueError(f"{ingredient.name} 재고가 부족합니다.")  # ✅ 예외 발생 -> 롤백됨
+                            raise ValueError(f"{ingredient.name} 재고가 부족합니다.")  
 
                         inventory.remaining_stock -= ingredient_data["required_amount"]
-                        inventory_updates.append((inventory, ingredient_data["required_amount"]))  # ✅ 롤백 대비 저장
+                        inventory_updates.append((inventory, ingredient_data["required_amount"]))  
                         inventory.save()
 
                         RecipeItem.objects.create(
@@ -64,19 +64,31 @@ class StoreRecipeListView(APIView):
                         production_quantity_per_batch=recipe.production_quantity_per_batch
                     )
 
+                    # ✅ DB 값 강제 업데이트 (이걸 안 하면 serializer가 이전 값을 가져옴)
+                    Recipe.objects.filter(id=recipe.id).update(
+                        total_ingredient_cost=Decimal(str(cost_data["total_material_cost"])),
+                        production_cost=Decimal(str(cost_data["cost_per_item"]))
+                    )
+
+                    # ✅ 다시 DB에서 가져와서 최신 값으로 응답!
+                    updated_recipe = Recipe.objects.get(id=recipe.id)
+
                     response_data = serializer.data
                     response_data.update({
-                        "total_ingredient_cost": cost_data["total_material_cost"],
-                        "production_cost": cost_data["cost_per_item"],
+                        "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),  # ✅ 최신 값 사용
+                        "production_cost": float(updated_recipe.production_cost),  # ✅ 최신 값 사용
                     })
 
+                    print(f"📌 Final API Response: {response_data}")  # ✅ 최종 응답 확인
+
                 except ValueError as e:
-                    transaction.set_rollback(True)  # ✅ 롤백 처리
+                    transaction.set_rollback(True)  
                     return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # ✅ 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
