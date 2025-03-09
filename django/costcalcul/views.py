@@ -45,10 +45,11 @@ class StoreRecipeListView(APIView):
 
                         if inventory.remaining_stock < ingredient_data["required_amount"]:
                             raise ValueError(f"{ingredient.name} 재고가 부족합니다.")  
-
-                        inventory.remaining_stock -= ingredient_data["required_amount"]
-                        inventory_updates.append((inventory, ingredient_data["required_amount"]))  
+                        
+                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal 변환
+                        inventory.remaining_stock -= Decimal(str(ingredient_data["required_amount"]))  # ✅ Decimal 변환 후 연산
                         inventory.save()
+
 
                         RecipeItem.objects.create(
                             recipe=recipe,
@@ -64,20 +65,25 @@ class StoreRecipeListView(APIView):
                         production_quantity_per_batch=recipe.production_quantity_per_batch
                     )
 
-                    # ✅ DB 값 강제 업데이트 (이걸 안 하면 serializer가 이전 값을 가져옴)
+                    # ✅ DB 값 강제 업데이트
                     Recipe.objects.filter(id=recipe.id).update(
                         total_ingredient_cost=Decimal(str(cost_data["total_material_cost"])),
                         production_cost=Decimal(str(cost_data["cost_per_item"]))
                     )
 
-                    # ✅ 다시 DB에서 가져와서 최신 값으로 응답!
+                    # ✅ 🔥 여기서 다시 DB에서 최신 데이터를 가져옴!
                     updated_recipe = Recipe.objects.get(id=recipe.id)
 
-                    response_data = serializer.data
-                    response_data.update({
+                    response_data = {
+                        "id": str(updated_recipe.id),
+                        "recipe_name": updated_recipe.name,
+                        "recipe_cost": updated_recipe.sales_price_per_item,
+                        "recipe_img": updated_recipe.recipe_img.url if updated_recipe.recipe_img else None,
+                        "is_favorites": updated_recipe.is_favorites,
+                        "production_quantity": updated_recipe.production_quantity_per_batch,
                         "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),  # ✅ 최신 값 사용
                         "production_cost": float(updated_recipe.production_cost),  # ✅ 최신 값 사용
-                    })
+                    }
 
                     print(f"📌 Final API Response: {response_data}")  # ✅ 최종 응답 확인
 
@@ -88,6 +94,7 @@ class StoreRecipeListView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # ✅ 특정 레시피 상세 조회
