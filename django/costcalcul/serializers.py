@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from decimal import Decimal
 from .utils import calculate_recipe_cost
 import logging
+from django.db import transaction
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +62,8 @@ class RecipeSerializer(serializers.ModelSerializer):
                 defaults={"remaining_stock": ingredient.purchase_quantity}
             )
 
-            # ✅ Debugging Log 추가
-            logger.info(f"[Before Deduction] Ingredient: {ingredient.name}, Remaining Stock: {inventory.remaining_stock}")
-            print(f"[Before Deduction] Ingredient: {ingredient.name}, Remaining Stock: {inventory.remaining_stock}")
-
-            # ✅ Decimal 변환
             inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
             unit_price = Decimal(str(ingredient.unit_cost))  
-
-            logger.info(f"[Check] Ingredient: {ingredient.name}, Unit Cost: {unit_price}, Required Amount: {required_amount}")
-            print(f"[Check] Ingredient: {ingredient.name}, Unit Cost: {unit_price}, Required Amount: {required_amount}")
 
             if inventory.remaining_stock < required_amount:
                 raise serializers.ValidationError(
@@ -79,9 +73,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             inventory.remaining_stock -= required_amount  
             inventory.save()
 
-            logger.info(f"[After Deduction] Ingredient: {ingredient.name}, Remaining Stock: {inventory.remaining_stock}")
-            print(f"[After Deduction] Ingredient: {ingredient.name}, Remaining Stock: {inventory.remaining_stock}")
-
             RecipeItem.objects.create(
                 recipe=recipe,
                 ingredient=ingredient,
@@ -89,7 +80,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 unit=ingredient_data["unit"]
             )
 
-            # ✅ `ingredient_costs` 추가
             ingredient_costs.append({
                 "ingredient_id": str(ingredient.id),
                 "ingredient_name": ingredient.name,
@@ -105,15 +95,23 @@ class RecipeSerializer(serializers.ModelSerializer):
             production_quantity_per_batch=recipe.production_quantity_per_batch  
         )
 
-        # ✅ Debugging Log for Cost Calculation
-        logger.info(f"Calculated Cost Data: {cost_data}")
-        print(f"Calculated Cost Data: {cost_data}")
+        print(f"Before Save: {cost_data['total_material_cost']}, {cost_data['cost_per_item']}")  # ✅ 값 확인
 
+        # ✅ Decimal 변환 후 강제 업데이트
         recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
         recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
-        recipe.save()  # ✅ DB 저장
 
-        return recipe
+        with transaction.atomic():
+            Recipe.objects.filter(id=recipe.id).update(
+                total_ingredient_cost=recipe.total_ingredient_cost,
+                production_cost=recipe.production_cost
+            )
+
+        # ✅ DB에서 다시 조회하여 값이 저장되었는지 확인
+        updated_recipe = Recipe.objects.get(id=recipe.id)
+        print(f"[DB Stored] total_ingredient_cost: {updated_recipe.total_ingredient_cost}, production_cost: {updated_recipe.production_cost}")
+
+        return updated_recipe  # ✅ 시리얼라이저에 반영
 
 
 
