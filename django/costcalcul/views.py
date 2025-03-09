@@ -10,7 +10,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from inventory.models import Inventory
 from django.db import transaction
 from .utils import calculate_recipe_cost
-
+from decimal import Decimal
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
