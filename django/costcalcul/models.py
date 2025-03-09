@@ -22,6 +22,9 @@ class Recipe(models.Model):
     recipe_img = models.ImageField(upload_to=recipe_image_upload_path, null=True, blank=True)  # ✅ 이미지 필드 추가
     is_favorites = models.BooleanField(default=False)
     
+    total_ingredient_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 총 재료비
+    production_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 개당 원가
+    
     def __str__(self):
         return self.name
 
