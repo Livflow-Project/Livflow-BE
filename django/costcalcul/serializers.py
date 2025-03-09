@@ -34,14 +34,15 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = RecipeItemSerializer(many=True, write_only=True)  
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch")
 
-    # ✅ total_ingredient_cost와 production_cost를 DB에서 가져오도록 설정
-    total_ingredient_cost = serializers.SerializerMethodField()
-    production_cost = serializers.SerializerMethodField()
+    # ✅ `total_ingredient_cost`와 `production_cost`를 `DB 저장된 값`으로 직접 반환하도록 변경
+    total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Recipe
         fields = ['id', 'recipe_name', 'recipe_cost', 'recipe_img', 'is_favorites', 'ingredients', 'production_quantity', 'total_ingredient_cost', 'production_cost']
         read_only_fields = ['id']
+
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
@@ -108,8 +109,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         logger.info(f"Calculated Cost Data: {cost_data}")
         print(f"Calculated Cost Data: {cost_data}")
 
-        recipe.total_ingredient_cost = cost_data["total_material_cost"]
-        recipe.production_cost = cost_data["cost_per_item"]
+        recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
+        recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
         recipe.save()  # ✅ DB 저장
 
         return recipe
