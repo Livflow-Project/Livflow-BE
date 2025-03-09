@@ -34,9 +34,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = RecipeItemSerializer(many=True, write_only=True)  
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch")
 
-    # ✅ 추가 필드 (응답 + DB 저장)
-    total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    # ✅ total_ingredient_cost와 production_cost를 DB에서 가져오도록 설정
+    total_ingredient_cost = serializers.SerializerMethodField()
+    production_cost = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
