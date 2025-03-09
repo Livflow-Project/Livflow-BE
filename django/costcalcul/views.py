@@ -74,6 +74,9 @@ class StoreRecipeListView(APIView):
                     # ✅ 🔥 여기서 다시 DB에서 최신 데이터를 가져옴!
                     updated_recipe = Recipe.objects.get(id=recipe.id)
 
+                    print(f"🔎 Checking updated_recipe.total_ingredient_cost: {updated_recipe.total_ingredient_cost}")  # ✅ 실제 값 확인
+                    print(f"🔎 Checking updated_recipe.production_cost: {updated_recipe.production_cost}")  # ✅ 실제 값 확인
+
                     response_data = {
                         "id": str(updated_recipe.id),
                         "recipe_name": updated_recipe.name,
