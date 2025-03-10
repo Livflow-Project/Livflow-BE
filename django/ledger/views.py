@@ -51,12 +51,15 @@ class LedgerTransactionListCreateView(APIView):
         transaction_date = f"{date_data.get('year')}-{date_data.get('month')}-{date_data.get('day')}"  # 🔹 YYYY-MM-DD 형식 변환
         
         category_name = request.data.get("category")
-        category = get_object_or_404(Category, name=category_name)  # 🔹 카테고리 이름으로 ID 조회
+        category = Category.objects.filter(name=category_name).first()  # 🔹 카테고리 이름으로 조회
+
+        if not category:
+            return Response({"error": f"'{category_name}' 카테고리가 존재하지 않습니다."}, status=400)
 
         transaction_data = {
-            "user": request.user.id,
-            "store": store.id,  
-            "category": category.id,  # 🔹 카테고리 ID로 변환
+            "user": request.user.id,  # 🔹 자동으로 현재 사용자 ID 할당
+            "store_id": store.id,  # 🔹 store ID 추가
+            "category_id": category.id,  # 🔹 카테고리 ID 변환
             "transaction_type": request.data.get("type"),  # 🔹 "type" → "transaction_type" 변경
             "amount": request.data.get("cost"),  # 🔹 "cost" → "amount" 변경
             "date": transaction_date,  # 🔹 YYYY-MM-DD로 변환된 날짜
@@ -69,6 +72,7 @@ class LedgerTransactionListCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
