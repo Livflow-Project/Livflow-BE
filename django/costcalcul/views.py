@@ -65,13 +65,12 @@ class StoreRecipeListView(APIView):
                         production_quantity_per_batch=recipe.production_quantity_per_batch
                     )
 
-                    # ✅ DB 값 강제 업데이트
-                    Recipe.objects.filter(id=recipe.id).update(
-                        total_ingredient_cost=Decimal(str(cost_data["total_material_cost"])),
-                        production_cost=Decimal(str(cost_data["cost_per_item"]))
-                    )
+                    # ✅ 원가 계산 후 recipe 인스턴스를 직접 수정
+                    recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
+                    recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
+                    recipe.save()  # ✅ 여기서 강제 저장
 
-                    # ✅ 🔥 여기서 다시 DB에서 최신 데이터를 가져옴!
+                    # ✅ 🔥 이제 바로 최신 값 가져오기!
                     updated_recipe = Recipe.objects.get(id=recipe.id)
 
                     print(f"🔎 Checking updated_recipe.total_ingredient_cost: {updated_recipe.total_ingredient_cost}")  # ✅ 실제 값 확인
