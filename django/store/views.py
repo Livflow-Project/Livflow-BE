@@ -21,42 +21,42 @@ class StoreListView(APIView):
         responses={200: "가게 목록 반환", 401: "로그인이 필요합니다."}
     )
     def get(self, request):
-        """ ✅ 모든 가게 목록 + 현재 월 거래 차트 포함 """
+        """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 이번 달의 거래 차트 정보 반환 """
         stores = Store.objects.filter(user=request.user)
 
-        # ✅ 현재 연도 & 월 가져오기
-        now = datetime.now()
-        current_year, current_month = now.year, now.month
+        response_data = []
+        current_year = datetime.now().year
+        current_month = datetime.now().month
 
-        store_data = []
         for store in stores:
-            # ✅ 현재 월의 거래 내역을 `income`, `expense`별로 카테고리 합산
+            # 🔹 해당 가게의 이번 달 거래 내역 집계
             transactions = Transaction.objects.filter(
-                store=store, date__year=current_year, date__month=current_month
-            )
+                store=store,
+                date__year=current_year,
+                date__month=current_month
+            ).values("transaction_type", "category__name").annotate(
+                total=Sum("amount")
+            ).order_by("-total")[:3]  # 🔥 상위 3개 항목만 반환
 
-            # ✅ 카테고리별 총 수입/지출 계산 (내림차순 정렬 후 최대 3개 제한)
-            category_summary = (
-                transactions.values("transaction_type", "category__name")
-                .annotate(total=Sum("amount"))
-                .order_by("-total")[:6]  # ✅ 수입 3개 + 지출 3개 → 최대 6개
-            )
-
+            # 🔹 거래 내역을 `chart` 데이터로 변환
             chart_data = [
-                {"type": c["transaction_type"], "category": c["category__name"], "cost": float(c["total"])}
-                for c in category_summary
+                {
+                    "type": t["transaction_type"],
+                    "category": t["category__name"],
+                    "cost": float(t["total"])  # 🔹 Decimal → float 변환
+                }
+                for t in transactions
             ]
 
-            store_data.append(
-                {
-                    "store_id": str(store.id),
-                    "name": store.name,
-                    "address": store.address,
-                    "chart": chart_data,  # ✅ 거래 차트 추가
-                }
-            )
+            # 🔹 최종 응답 데이터 구성
+            response_data.append({
+                "store_id": str(store.id),
+                "name": store.name,
+                "address": store.address,
+                "chart": chart_data  # ✅ 차트 데이터 추가
+            })
 
-        return Response({"stores": store_data}, status=status.HTTP_200_OK)
+        return Response({"stores": response_data}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_summary="새 가게 등록",
