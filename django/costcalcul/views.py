@@ -68,23 +68,23 @@ class StoreRecipeListView(APIView):
                     # ✅ 원가 계산 후 recipe 인스턴스를 직접 수정
                     recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
                     recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
-                    recipe.save()  # ✅ 여기서 강제 저장
+                    recipe.save()  # ✅ DB 저장
 
-                    # ✅ 🔥 이제 바로 최신 값 가져오기!
-                    updated_recipe = Recipe.objects.get(id=recipe.id)
+                    # ✅ 🔥 여기서 강제로 DB에서 최신 값 가져오기!
+                    recipe.refresh_from_db()
 
-                    print(f"🔎 Checking updated_recipe.total_ingredient_cost: {updated_recipe.total_ingredient_cost}")  # ✅ 실제 값 확인
-                    print(f"🔎 Checking updated_recipe.production_cost: {updated_recipe.production_cost}")  # ✅ 실제 값 확인
+                    print(f"🔎 Checking updated_recipe.total_ingredient_cost: {recipe.total_ingredient_cost}")  # ✅ 최신 값 확인
+                    print(f"🔎 Checking updated_recipe.production_cost: {recipe.production_cost}")  # ✅ 최신 값 확인
 
                     response_data = {
-                        "id": str(updated_recipe.id),
-                        "recipe_name": updated_recipe.name,
-                        "recipe_cost": updated_recipe.sales_price_per_item,
-                        "recipe_img": updated_recipe.recipe_img.url if updated_recipe.recipe_img else None,
-                        "is_favorites": updated_recipe.is_favorites,
-                        "production_quantity": updated_recipe.production_quantity_per_batch,
-                        "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),  # ✅ 최신 값 사용
-                        "production_cost": float(updated_recipe.production_cost),  # ✅ 최신 값 사용
+                        "id": str(recipe.id),
+                        "recipe_name": recipe.name,
+                        "recipe_cost": recipe.sales_price_per_item,
+                        "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
+                        "is_favorites": recipe.is_favorites,
+                        "production_quantity": recipe.production_quantity_per_batch,
+                        "total_ingredient_cost": float(recipe.total_ingredient_cost),  # ✅ 최신 값 사용
+                        "production_cost": float(recipe.production_cost),  # ✅ 최신 값 사용
                     }
 
                     print(f"📌 Final API Response: {response_data}")  # ✅ 최종 응답 확인
