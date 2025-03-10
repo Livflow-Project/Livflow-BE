@@ -35,9 +35,11 @@ class StoreRecipeListView(APIView):
             with transaction.atomic():
                 recipe = serializer.save(store_id=store_id)
 
+                print(f"🔍 Step 1 - Recipe Created: {recipe.id}")  # ✅ 레시피 생성 확인
+
                 ingredients = request.data.get("ingredients", [])
                 inventory_updates = []
-                
+
                 try:
                     for ingredient_data in ingredients:
                         ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
@@ -45,11 +47,10 @@ class StoreRecipeListView(APIView):
 
                         if inventory.remaining_stock < ingredient_data["required_amount"]:
                             raise ValueError(f"{ingredient.name} 재고가 부족합니다.")  
-                        
-                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal 변환
-                        inventory.remaining_stock -= Decimal(str(ingredient_data["required_amount"]))  # ✅ Decimal 변환 후 연산
-                        inventory.save()
 
+                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
+                        inventory.remaining_stock -= Decimal(str(ingredient_data["required_amount"]))  
+                        inventory.save()
 
                         RecipeItem.objects.create(
                             recipe=recipe,
@@ -58,6 +59,8 @@ class StoreRecipeListView(APIView):
                             unit=ingredient_data["unit"]
                         )
 
+                    print(f"🔍 Step 2 - All Ingredients Processed")  # ✅ 모든 재료 처리 완료
+
                     # ✅ 원가 계산
                     cost_data = calculate_recipe_cost(
                         ingredients=ingredients,
@@ -65,29 +68,30 @@ class StoreRecipeListView(APIView):
                         production_quantity_per_batch=recipe.production_quantity_per_batch
                     )
 
+                    print(f"🔍 Step 3 - Cost Calculated: {cost_data}")  # ✅ 원가 계산 결과 확인
+
                     # ✅ 원가 계산 후 recipe 인스턴스를 직접 수정
                     recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
                     recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
+
+                    print(f"🔍 Step 4 - Before Save: {recipe.total_ingredient_cost}, {recipe.production_cost}")  # ✅ 저장 전 확인
                     recipe.save()  # ✅ DB 저장
+                    print(f"🔍 Step 5 - After Save: {recipe.total_ingredient_cost}, {recipe.production_cost}")  # ✅ 저장 후 확인
 
                     # ✅ 🔥 여기서 강제로 DB에서 최신 값 가져오기!
                     recipe.refresh_from_db()
+                    print(f"🔎 Step 6 - After Refresh From DB: {recipe.total_ingredient_cost}, {recipe.production_cost}")  # ✅ 최신 값 확인
 
-                    print(f"🔎 Checking updated_recipe.total_ingredient_cost: {recipe.total_ingredient_cost}")  # ✅ 최신 값 확인
-                    print(f"🔎 Checking updated_recipe.production_cost: {recipe.production_cost}")  # ✅ 최신 값 확인
+                    # ✅ 응답 데이터 생성 전 확인
+                    response_data = serializer.data
+                    print(f"🚀 Step 7 - Before Update response_data:", response_data)  
 
-                    response_data = {
-                        "id": str(recipe.id),
-                        "recipe_name": recipe.name,
-                        "recipe_cost": recipe.sales_price_per_item,
-                        "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
-                        "is_favorites": recipe.is_favorites,
-                        "production_quantity": recipe.production_quantity_per_batch,
-                        "total_ingredient_cost": float(recipe.total_ingredient_cost),  # ✅ 최신 값 사용
-                        "production_cost": float(recipe.production_cost),  # ✅ 최신 값 사용
-                    }
+                    response_data.update({
+                        "total_ingredient_cost": float(recipe.total_ingredient_cost),
+                        "production_cost": float(recipe.production_cost),
+                    })
 
-                    print(f"📌 Final API Response: {response_data}")  # ✅ 최종 응답 확인
+                    print(f"🚀 Step 8 - After Update response_data:", response_data)  # ✅ 최종 응답 데이터 확인
 
                 except ValueError as e:
                     transaction.set_rollback(True)  
@@ -96,6 +100,7 @@ class StoreRecipeListView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
