@@ -147,13 +147,17 @@ class LedgerCalendarView(APIView):
 
         days_list = [{"day": day, **summary} for day, summary in day_summary.items()]
 
-        # ✅ 카테고리별 총 수입/지출 계산
+        # ✅ 카테고리별 총 수입/지출 계산 (🚨 `ledger.models.Category` 참조)
         category_summary = transactions.values("transaction_type", "category__name").annotate(
             total=Sum("amount")
         ).order_by("-total")[:5]  # ✅ 상위 5개 카테고리만 반환
 
         category_data = [
-            {"type": c["transaction_type"], "category": c["category__name"], "total": c["total"]}
+            {
+                "type": c["transaction_type"],
+                "category": c["category__name"] if c["category__name"] else "미분류",  # ✅ 카테고리 없으면 "미분류"
+                "total": float(c["total"])  # ✅ Decimal → float 변환
+            }
             for c in category_summary
         ]
 
@@ -168,6 +172,7 @@ class LedgerCalendarView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 
 class LedgerDailyTransactionView(APIView):
