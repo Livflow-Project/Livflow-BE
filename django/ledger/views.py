@@ -44,21 +44,30 @@ class LedgerTransactionListCreateView(APIView):
         responses={201: TransactionSerializer, 400: "잘못된 요청 데이터"},
     )
     def post(self, request, store_id):
-        store = get_object_or_404(Store, id=store_id, user=request.user)  
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+
+        # ✅ `date` 변환 (프론트에서 {year, month, day} 형태로 보낸 경우)
+        date_data = request.data.get("date", {})
+        if isinstance(date_data, dict):
+            date_str = f"{date_data.get('year')}-{date_data.get('month'):02d}-{date_data.get('day'):02d}"
+        else:
+            date_str = date_data  # 이미 YYYY-MM-DD 형식이면 그대로 사용
 
         transaction_data = {
             "user": request.user.id,
-            "store": store.id,  
+            "store": store.id,
             "category": request.data.get("category_id"),
             "transaction_type": request.data.get("transaction_type"),
             "amount": request.data.get("amount"),
-            "date": request.data.get("date"),
-            "description": request.data.get("description")
+            "date": date_str,
+            "description": request.data.get("detail")
         }
+
         serializer = TransactionSerializer(data=transaction_data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
