@@ -6,12 +6,14 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth import get_user_model
-from .models import Store
+from .models import Store, Transaction
 from .serializers import StoreSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from datetime import datetime
+from django.db.models import Sum
 
 class StoreListView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
     @swagger_auto_schema(
         operation_summary="모든 가게 목록 조회",
@@ -19,11 +21,42 @@ class StoreListView(APIView):
         responses={200: "가게 목록 반환", 401: "로그인이 필요합니다."}
     )
     def get(self, request):
-        stores = Store.objects.filter(user=request.user).values("id", "name", "address")
-        return Response([
-            {"store_id": str(store["id"]), "name": store["name"], "address": store["address"]}
-            for store in stores
-        ])
+        """ ✅ 모든 가게 목록 + 현재 월 거래 차트 포함 """
+        stores = Store.objects.filter(user=request.user)
+
+        # ✅ 현재 연도 & 월 가져오기
+        now = datetime.now()
+        current_year, current_month = now.year, now.month
+
+        store_data = []
+        for store in stores:
+            # ✅ 현재 월의 거래 내역을 `income`, `expense`별로 카테고리 합산
+            transactions = Transaction.objects.filter(
+                store=store, date__year=current_year, date__month=current_month
+            )
+
+            # ✅ 카테고리별 총 수입/지출 계산 (내림차순 정렬 후 최대 3개 제한)
+            category_summary = (
+                transactions.values("transaction_type", "category__name")
+                .annotate(total=Sum("amount"))
+                .order_by("-total")[:6]  # ✅ 수입 3개 + 지출 3개 → 최대 6개
+            )
+
+            chart_data = [
+                {"type": c["transaction_type"], "category": c["category__name"], "cost": float(c["total"])}
+                for c in category_summary
+            ]
+
+            store_data.append(
+                {
+                    "store_id": str(store.id),
+                    "name": store.name,
+                    "address": store.address,
+                    "chart": chart_data,  # ✅ 거래 차트 추가
+                }
+            )
+
+        return Response({"stores": store_data}, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_summary="새 가게 등록",
