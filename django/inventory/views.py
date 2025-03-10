@@ -7,10 +7,18 @@ from .models import Inventory
 from ingredients.models import Ingredient
 from costcalcul.models import Recipe, RecipeItem  # ✅ 레시피 모델 추가
 from .serializers import InventorySerializer
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 # ✅ 특정 상점의 재고 조회
 class StoreInventoryView(APIView):
+    
+    @swagger_auto_schema(
+        operation_summary="특정 상점의 재고 목록 조회",
+        responses={200: "재고 목록 반환"}
+    )
+    
     def get(self, request, store_id):
         """ 특정 상점의 재고 목록 조회 """
         inventories = Inventory.objects.filter(ingredient__store_id=store_id)
@@ -29,6 +37,19 @@ class StoreInventoryView(APIView):
 
  
 class UseIngredientStockView(APIView):
+    
+    @swagger_auto_schema(
+        operation_summary="특정 재료 재고 사용",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "used_stock": openapi.Schema(type=openapi.TYPE_NUMBER, description="사용할 재고량")
+            },
+            required=["used_stock"]
+        ),
+        responses={200: "재고 사용 성공", 400: "유효성 검사 실패"}
+    )
+    
     def post(self, request, store_id, ingredient_id):
         """ 특정 재료의 재고 사용 처리 """
         inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
@@ -58,6 +79,12 @@ class UseIngredientStockView(APIView):
 
 # ✅ 레시피 삭제 시 재료 재고 복구
 class DeleteRecipeView(APIView):
+    
+    @swagger_auto_schema(
+        operation_summary="레시피 삭제 및 재료 재고 복구",
+        responses={204: "레시피 삭제 및 재고 복구 완료", 404: "레시피를 찾을 수 없음"}
+    )    
+    
     def delete(self, request, store_id, recipe_id):
         """ 레시피 삭제 시 사용한 재료를 다시 재고로 복구 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)

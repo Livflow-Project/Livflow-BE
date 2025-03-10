@@ -15,6 +15,12 @@ from django.db.models import Sum
 class StoreListView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_summary="현재 로그인한 사용자의 모든 가게 조회",
+        operation_description="사용자가 소유한 모든 가게와 해당 가게의 월별 차트 데이터를 반환합니다.",
+        responses={200: "가게 목록과 차트 정보"}
+    )    
+    
     def get(self, request):
         """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 이번 달의 Ledger 차트 정보 포함 """
         stores = Store.objects.filter(user=request.user)
@@ -72,7 +78,7 @@ class StoreListView(APIView):
             },
             required=['name'],
         ),
-        responses={201: "가게 등록 성공", 400: "유효성 검사 실패"}
+        responses={201: StoreSerializer(), 400: "유효성 검사 실패"}
     )
     def post(self, request):
         serializer = StoreSerializer(data=request.data)
@@ -88,7 +94,7 @@ class StoreDetailView(APIView):
     @swagger_auto_schema(
         operation_summary="특정 가게 조회",
         operation_description="가게 ID를 이용해 해당 가게의 기본 정보를 조회합니다.",
-        responses={200: "가게 기본 정보 반환", 404: "가게를 찾을 수 없습니다."}
+        responses={200: StoreSerializer(), 404: "가게를 찾을 수 없습니다."}
     )
     def get(self, request, id):
         store = get_object_or_404(Store, id=id, user=request.user)
@@ -109,7 +115,7 @@ class StoreDetailView(APIView):
             },
             required=['name'],
         ),
-        responses={200: "가게 수정 성공", 400: "유효성 검사 실패", 404: "가게를 찾을 수 없습니다."}
+        responses={200: StoreSerializer(), 400: "유효성 검사 실패", 404: "가게를 찾을 수 없습니다."}
     )
     def put(self, request, id):
         store = get_object_or_404(Store, id=id, user=request.user)

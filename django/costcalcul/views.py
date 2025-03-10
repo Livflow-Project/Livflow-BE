@@ -4,17 +4,20 @@ from rest_framework import status
 from .models import Recipe, RecipeItem
 from .serializers import RecipeSerializer
 from django.shortcuts import get_object_or_404
-from .utils import calculate_recipe_cost  # ✅ 레시피 원가 계산 함수 활용
 from ingredients.models import Ingredient  # ✅ Ingredient 모델 import
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from inventory.models import Inventory
 from django.db import transaction
-from .utils import calculate_recipe_cost
-from decimal import Decimal
+from drf_yasg.utils import swagger_auto_schema
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
     parser_classes = (JSONParser,MultiPartParser, FormParser)
+    
+    @swagger_auto_schema(
+        operation_summary="특정 상점의 모든 레시피 조회",
+        responses={200: "레시피 목록 반환"}
+    )
     def get(self, request, store_id):
         recipes = Recipe.objects.filter(store_id=store_id)
         recipe_data = [
@@ -28,6 +31,12 @@ class StoreRecipeListView(APIView):
             for recipe in recipes
         ]
         return Response(recipe_data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="새로운 레시피 추가",
+        request_body=RecipeSerializer,
+        responses={201: "레시피 생성 성공", 400: "유효성 검사 실패"}
+    )
 
     def post(self, request, store_id):
         serializer = RecipeSerializer(data=request.data)
@@ -60,6 +69,11 @@ class StoreRecipeListView(APIView):
 # ✅ 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
     parser_classes = (JSONParser,MultiPartParser, FormParser)
+
+    @swagger_auto_schema(
+        operation_summary="특정 레시피 상세 조회",
+        responses={200: "레시피 상세 정보 반환", 404: "레시피를 찾을 수 없음"}
+    )
 
     def get(self, request, store_id, recipe_id):
         """ 특정 레시피 상세 조회 """
@@ -95,6 +109,11 @@ class StoreRecipeDetailView(APIView):
 
         return Response(response_data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_summary="특정 레시피 수정",
+        request_body=RecipeSerializer,
+        responses={200: "레시피 수정 성공", 400: "유효성 검사 실패", 404: "레시피를 찾을 수 없음"}
+    )
 
     def put(self, request, store_id, recipe_id):
         """ 특정 레시피 수정 """
@@ -118,6 +137,11 @@ class StoreRecipeDetailView(APIView):
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_summary="특정 레시피 삭제",
+        responses={204: "레시피 삭제 성공", 404: "레시피를 찾을 수 없음"}
+    )
 
     def delete(self, request, store_id, recipe_id):
         """ 특정 레시피 삭제 시 사용한 재료의 재고 복구 """

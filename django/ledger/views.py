@@ -9,11 +9,19 @@ from ledger.serializers import TransactionSerializer, CategorySerializer
 from datetime import datetime
 from django.db.models import Sum
 from datetime import date
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 
 
 # ✅ 1️⃣ 거래 내역 목록 조회 & 생성
 class LedgerTransactionListCreateView(APIView):  
     permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="특정 상점의 모든 거래 내역 조회",
+        responses={200: TransactionSerializer(many=True)}
+    )    
 
     def get(self, request, store_id):
         """ ✅ 특정 상점의 모든 거래 내역 조회 """
@@ -21,6 +29,12 @@ class LedgerTransactionListCreateView(APIView):
         transactions = Transaction.objects.filter(store=store)
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="거래 내역 생성",
+        request_body=TransactionSerializer,
+        responses={201: TransactionSerializer()}
+    )
 
     def post(self, request, store_id):
         """ ✅ 거래 내역 생성 """
@@ -37,6 +51,11 @@ class LedgerTransactionListCreateView(APIView):
 # ✅ 2️⃣ 특정 거래 내역 조회, 수정, 삭제
 class LedgerTransactionDetailView(APIView):  
     permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="특정 거래 내역 조회",
+        responses={200: TransactionSerializer()}
+    )    
 
     def get(self, request, store_id, transaction_id):
         """ ✅ 특정 거래 내역 조회 """
@@ -45,6 +64,12 @@ class LedgerTransactionDetailView(APIView):
         serializer = TransactionSerializer(transaction)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+    @swagger_auto_schema(
+        operation_summary="특정 거래 내역 수정",
+        request_body=TransactionSerializer,
+        responses={200: TransactionSerializer()}
+    )
 
     def put(self, request, store_id, transaction_id):
         """ ✅ 특정 거래 내역 수정 """
@@ -74,6 +99,11 @@ class LedgerTransactionDetailView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(
+        operation_summary="특정 거래 내역 삭제",
+        responses={204: "삭제 완료"}
+    )
+
     def delete(self, request, store_id, transaction_id):
         """ ✅ 특정 거래 내역 삭제 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
@@ -86,11 +116,22 @@ class LedgerTransactionDetailView(APIView):
 class CategoryListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="특정 월의 거래 내역 조회",
+        manual_parameters=[
+            openapi.Parameter("year", openapi.IN_QUERY, description="조회할 연도", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter("month", openapi.IN_QUERY, description="조회할 월", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        responses={200: "캘린더 및 차트 데이터 반환"}
+    )
+
     def get(self, request):
         """ ✅ 모든 카테고리 목록 조회 """
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
     def post(self, request):
         """ ✅ 새로운 카테고리 추가 """
@@ -131,6 +172,15 @@ class CategoryDetailView(APIView):
     # ✅ 5️⃣ 특정 월의 거래 내역을 조회 (캘린더 API)
 class LedgerCalendarView(APIView):  
     permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="특정 월의 거래 내역 조회",
+        manual_parameters=[
+            openapi.Parameter("year", openapi.IN_QUERY, description="조회할 연도", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter("month", openapi.IN_QUERY, description="조회할 월", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        responses={200: "캘린더 및 차트 데이터 반환"}
+    )
 
     def get(self, request, store_id):
         """ 특정 월의 거래 내역을 조회하여, 달력 & 차트 데이터 반환 """
@@ -194,6 +244,16 @@ class LedgerCalendarView(APIView):
 
 class LedgerDailyTransactionView(APIView):
     permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="특정 날짜의 거래 내역 조회",
+        manual_parameters=[
+            openapi.Parameter("year", openapi.IN_QUERY, description="조회할 연도", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter("month", openapi.IN_QUERY, description="조회할 월", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter("day", openapi.IN_QUERY, description="조회할 일", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        responses={200: "거래 내역 리스트 반환"}
+    )
 
     def get(self, request, store_id):
         """ ✅ 특정 날짜의 거래 내역 조회 (요청된 형식에 맞게 수정) """

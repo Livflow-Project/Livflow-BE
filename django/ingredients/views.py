@@ -7,12 +7,17 @@ from .models import Ingredient
 from inventory.models import Inventory
 from .serializers import IngredientSerializer
 from store.models import Store
-
+from drf_yasg.utils import swagger_auto_schema
 
 class StoreIngredientView(APIView):
     """
     특정 상점의 모든 재료를 조회하고, 새로운 재료를 추가하는 API
     """
+
+    @swagger_auto_schema(
+        operation_summary="특정 상점의 모든 재료 조회",
+        responses={200: "재료 목록 반환"}
+    )
 
     def get(self, request, store_id):
         """ 특정 상점의 모든 재료 조회 (Ingredient 기준) """
@@ -31,6 +36,12 @@ class StoreIngredientView(APIView):
             for ingredient in ingredients
         ]
         return Response(ingredient_data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="특정 상점에 새로운 재료 추가",
+        request_body=IngredientSerializer,
+        responses={201: "재료 추가 성공", 400: "유효성 검사 실패"}
+    )
 
     def post(self, request, store_id):
         """ 특정 상점에 재료 추가 """
@@ -59,6 +70,11 @@ class IngredientDetailView(APIView):
     특정 재료를 조회, 수정 및 삭제하는 API
     """
 
+    @swagger_auto_schema(
+        operation_summary="특정 재료 상세 조회",
+        responses={200: "재료 상세 정보 반환", 404: "재료를 찾을 수 없음"}
+    )
+
     def get(self, request, store_id, ingredient_id):
         """ 특정 재료 상세 조회 """
         inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
@@ -75,6 +91,12 @@ class IngredientDetailView(APIView):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(
+        operation_summary="특정 재료 수정",
+        request_body=IngredientSerializer,
+        responses={200: "재료 수정 성공", 400: "유효성 검사 실패", 404: "재료를 찾을 수 없음"}
+    )
+
     def put(self, request, store_id, ingredient_id):
         """ 특정 재료 수정 """
         ingredient = get_object_or_404(Ingredient, id=ingredient_id, store_id=store_id)
@@ -84,6 +106,11 @@ class IngredientDetailView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_summary="특정 재료 삭제",
+        responses={204: "재료 삭제 성공", 404: "재료를 찾을 수 없음"}
+    )
 
     def delete(self, request, store_id, ingredient_id):
         """ 특정 재료 삭제 """
