@@ -64,8 +64,9 @@ class TransactionSerializer(serializers.ModelSerializer):
         )
 
         return transaction
-    def update(self, instance, validated_data):
 
+    def update(self, instance, validated_data):
         if "category" in validated_data:
             instance.category = self.validate_category(validated_data.pop("category"))  # ✅ ForeignKey 변환 후 저장
+
         return super().update(instance, validated_data)
