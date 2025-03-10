@@ -71,7 +71,7 @@ class StoreRecipeDetailView(APIView):
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
 
-        # ✅ 각 재료의 단가 포함한 데이터 구성
+        # ✅ 각 재료의 정보 가져오기
         ingredients_data = [
             {
                 "ingredient_id": str(item.ingredient.id),  
@@ -83,26 +83,23 @@ class StoreRecipeDetailView(APIView):
             for item in ingredients
         ]
 
-        # ✅ 레시피 원가 계산 함수 활용
-        cost_data = calculate_recipe_cost(
-            ingredients=ingredients_data,
-            sales_price_per_item=recipe.sales_price_per_item,
-            production_quantity_per_batch=recipe.production_quantity_per_batch
-        )
-
+        # ✅ DB에서 저장된 원가 값 가져오기
         response_data = {
             "recipe_id": str(recipe.id),  
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
             "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
-            "is_favorites": False,
-            "ingredients": cost_data["ingredient_costs"],
-            "total_ingredient_cost": cost_data["total_material_cost"],
+            "is_favorites": recipe.is_favorites,
+            "ingredients": ingredients_data,  # ✅ 재료 정보 추가
+            "total_ingredient_cost": float(recipe.total_ingredient_cost),  # ✅ DB 값 가져오기
             "production_quantity": recipe.production_quantity_per_batch,
-            "production_cost": cost_data["cost_per_item"],
+            "production_cost": float(recipe.production_cost),  # ✅ DB 값 가져오기
         }
 
+        print(f"📌 Final API Response: {response_data}")  # ✅ 최종 응답 확인
+
         return Response(response_data, status=status.HTTP_200_OK)
+
 
     def put(self, request, store_id, recipe_id):
         """ 특정 레시피 수정 """
