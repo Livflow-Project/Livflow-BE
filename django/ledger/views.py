@@ -45,12 +45,23 @@ class LedgerTransactionDetailView(APIView):
         serializer = TransactionSerializer(transaction)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
     def put(self, request, store_id, transaction_id):
         """ ✅ 특정 거래 내역 수정 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
         transaction = get_object_or_404(Transaction, id=transaction_id, store=store)
 
-        serializer = TransactionSerializer(transaction, data=request.data, partial=True, context={"request": request})
+        # 🔥 요청 데이터 복사 후 category 처리
+        data = request.data.copy()
+        
+        # ✅ category가 문자열이면 Category 인스턴스로 변환
+        category_name = data.get("category")
+        if category_name:
+            category, _ = Category.objects.get_or_create(name=category_name)
+            data["category"] = category.id  # ✅ ForeignKey에는 ID 저장
+
+        serializer = TransactionSerializer(transaction, data=data, partial=True, context={"request": request})
+        
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
