@@ -3,128 +3,78 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from django.db.models import Sum, Count
-from uuid import UUID
-from store.models import Store, Transaction  
-from .models import Category
-from .serializers import TransactionSerializer, CategorySerializer
+from django.db.models import Sum
+from datetime import datetime
+from store.models import Store, Transaction
+from ledger.models import Category
+from ledger.serializers import TransactionSerializer, CategorySerializer
 
 
-
-
-# 🔹 1️⃣ 거래 내역 목록 조회 & 생성
+# ✅ 1️⃣ 거래 내역 목록 조회 & 생성
 class LedgerTransactionListCreateView(APIView):  
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        operation_summary="거래 내역 목록 조회",
-        responses={200: TransactionSerializer(many=True)},
-    )
     def get(self, request, store_id):
-        store = get_object_or_404(Store, id=store_id, user=request.user)  
-        transactions = Transaction.objects.filter(store=store)  
+        """ ✅ 특정 상점의 모든 거래 내역 조회 """
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+        transactions = Transaction.objects.filter(store=store)
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
 
-    @swagger_auto_schema(
-        operation_summary="거래 내역 생성",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'category_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='카테고리 ID'),
-                'transaction_type': openapi.Schema(type=openapi.TYPE_STRING, description='거래 유형 (예: income, expense)'),
-                'amount': openapi.Schema(type=openapi.TYPE_NUMBER, format='float', description='거래 금액'),
-                'date': openapi.Schema(type=openapi.FORMAT_DATE, description='거래 날짜 (YYYY-MM-DD)'),
-                'description': openapi.Schema(type=openapi.TYPE_STRING, description='거래 설명 (선택 사항)'),
-            },
-            required=['category_id', 'transaction_type', 'amount', 'date'],
-        ),
-        responses={201: TransactionSerializer, 400: "잘못된 요청 데이터"},
-    )
     def post(self, request, store_id):
-        store = get_object_or_404(Store, id=store_id, user=request.user)  
-        
-        # 🛠 프론트에서 보낸 데이터 변환
-        date_data = request.data.get("date", {})
-        transaction_date = f"{date_data.get('year')}-{date_data.get('month')}-{date_data.get('day')}"  # 🔹 YYYY-MM-DD 형식 변환
-        
-        category_name = request.data.get("category")
-        category = Category.objects.filter(name=category_name).first()  # 🔹 카테고리 이름으로 조회
+        """ ✅ 거래 내역 생성 """
+        data = request.data.copy()
+        data["store_id"] = str(store_id)  # 🔹 store_id 추가
 
-        if not category:
-            return Response({"error": f"'{category_name}' 카테고리가 존재하지 않습니다."}, status=400)
-
-        transaction_data = {
-            "user": request.user.id,  # 🔹 자동으로 현재 사용자 ID 할당
-            "store_id": store.id,  # 🔹 store ID 추가
-            "category_id": category.id,  # 🔹 카테고리 ID 변환
-            "transaction_type": request.data.get("type"),  # 🔹 "type" → "transaction_type" 변경
-            "amount": request.data.get("cost"),  # 🔹 "cost" → "amount" 변경
-            "date": transaction_date,  # 🔹 YYYY-MM-DD로 변환된 날짜
-            "description": request.data.get("detail", "")  # 🔹 "detail" → "description" 변경 (선택값)
-        }
-
-        serializer = TransactionSerializer(data=transaction_data)
+        serializer = TransactionSerializer(data=data, context={"request": request})
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+            transaction = serializer.save()
+            return Response(TransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
-# 🔹 2️⃣ 특정 거래 내역 조회, 수정, 삭제
+# ✅ 2️⃣ 특정 거래 내역 조회, 수정, 삭제
 class LedgerTransactionDetailView(APIView):  
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        operation_summary="특정 거래 내역 조회",
-        responses={200: TransactionSerializer, 404: "거래 내역을 찾을 수 없음"},
-    )
     def get(self, request, store_id, transaction_id):
-        store = get_object_or_404(Store, id=store_id, user=request.user)  
-        transaction = get_object_or_404(Transaction, id=transaction_id, store=store)  
+        """ ✅ 특정 거래 내역 조회 """
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+        transaction = get_object_or_404(Transaction, id=transaction_id, store=store)
         serializer = TransactionSerializer(transaction)
         return Response(serializer.data)
 
-    @swagger_auto_schema(
-        operation_summary="특정 거래 내역 수정",
-        request_body=TransactionSerializer,
-        responses={200: TransactionSerializer, 400: "잘못된 요청 데이터", 404: "거래 내역을 찾을 수 없음"},
-    )
     def put(self, request, store_id, transaction_id):
+        """ ✅ 특정 거래 내역 수정 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
-        transaction = get_object_or_404(Transaction, id=transaction_id, store=store)  
+        transaction = get_object_or_404(Transaction, id=transaction_id, store=store)
 
-        serializer = TransactionSerializer(transaction, data=request.data, partial=True)
+        serializer = TransactionSerializer(transaction, data=request.data, partial=True, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_summary="특정 거래 내역 삭제",
-        responses={204: "삭제 성공", 404: "거래 내역을 찾을 수 없음"},
-    )
     def delete(self, request, store_id, transaction_id):
+        """ ✅ 특정 거래 내역 삭제 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
-        transaction = get_object_or_404(Transaction, id=transaction_id, store=store)  
+        transaction = get_object_or_404(Transaction, id=transaction_id, store=store)
         transaction.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
-# 🔹 4️⃣ 카테고리 목록 조회 & 생성
+
+# ✅ 3️⃣ 카테고리 목록 조회 & 생성
 class CategoryListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """ ✅ 모든 카테고리 목록 조회 """
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        """ ✅ 새로운 카테고리 추가 """
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -132,16 +82,18 @@ class CategoryListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# 🔹 5️⃣ 특정 카테고리 조회, 수정, 삭제
+# ✅ 4️⃣ 특정 카테고리 조회, 수정, 삭제
 class CategoryDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
+        """ ✅ 특정 카테고리 조회 """
         category = get_object_or_404(Category, id=id)
         serializer = CategorySerializer(category)
         return Response(serializer.data)
 
     def put(self, request, id):
+        """ ✅ 특정 카테고리 수정 """
         category = get_object_or_404(Category, id=id)
         serializer = CategorySerializer(category, data=request.data, partial=True)
         if serializer.is_valid():
@@ -150,103 +102,7 @@ class CategoryDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id):
+        """ ✅ 특정 카테고리 삭제 """
         category = get_object_or_404(Category, id=id)
         category.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
-
-
-# ✅ 1️⃣ GET /ledger/{storeId}/calendar?year=YYYY&month=MM
-class LedgerCalendarView(APIView):  
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, store_id):
-        """ 특정 월의 거래 내역을 조회하여, 달력 & 차트 데이터 반환 """
-        year = request.GET.get("year")
-        month = request.GET.get("month")
-
-        if not year or not month:
-            return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # ✅ 상점 확인
-        store = get_object_or_404(Store, id=store_id, user=request.user)
-
-        # ✅ 해당 월의 모든 거래 조회
-        transactions = Transaction.objects.filter(
-            store=store,
-            date__year=year,
-            date__month=month
-        )
-
-        # ✅ 날짜별 수입/지출 여부 정리
-        day_summary = {}
-        for t in transactions:
-            day = t.date.day
-            if day not in day_summary:
-                day_summary[day] = {"hasIncome": False, "hasExpense": False}
-
-            if t.transaction_type == "income":
-                day_summary[day]["hasIncome"] = True
-            else:
-                day_summary[day]["hasExpense"] = True
-
-        days_list = [{"day": day, **summary} for day, summary in day_summary.items()]
-
-        # ✅ 카테고리별 총 수입/지출 계산
-        category_summary = transactions.values("transaction_type", "category__name").annotate(
-            total=Sum("amount")
-        ).order_by("-total")[:5]  # ✅ 상위 5개 카테고리만 반환
-
-        category_data = [
-            {"type": c["transaction_type"], "category": c["category__name"], "total": c["total"]}
-            for c in category_summary
-        ]
-
-        # ✅ 최종 응답 데이터
-        response_data = {
-            "days": days_list,
-            "chart": {
-                "totalIncome": transactions.filter(transaction_type="income").aggregate(Sum("amount"))["amount__sum"] or 0,
-                "totalExpense": transactions.filter(transaction_type="expense").aggregate(Sum("amount"))["amount__sum"] or 0,
-                "categories": category_data,
-            }
-        }
-
-        return Response(response_data, status=status.HTTP_200_OK)
-
-# ✅ 2️⃣ GET /ledger/{storeId}/transactions?year=YYYY&month=MM&day=DD
-class LedgerDailyTransactionView(APIView):  
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, store_id):
-        """ 특정 날짜의 모든 거래 내역 조회 """
-        year = request.GET.get("year")
-        month = request.GET.get("month")
-        day = request.GET.get("day")
-
-        if not year or not month or not day:
-            return Response({"error": "year, month, day 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # ✅ 상점 확인
-        store = get_object_or_404(Store, id=store_id, user=request.user)
-
-        # ✅ 해당 날짜의 거래 내역 조회
-        transactions = Transaction.objects.filter(
-            store=store,
-            date__year=year,
-            date__month=month,
-            date__day=day
-        )
-
-        # ✅ 거래 내역을 JSON 형태로 변환
-        transaction_list = [
-            {
-                "transaction_id": str(t.id),
-                "type": t.transaction_type,
-                "category": t.category.name,
-                "detail": t.description or "",
-                "cost": t.amount
-            }
-            for t in transactions
-        ]
-
-        return Response(transaction_list, status=status.HTTP_200_OK)
