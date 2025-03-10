@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from store.models import Transaction, Store, Category
+from store.models import Store
+from ledger.models import Transaction, Category
 from datetime import datetime
 from rest_framework.exceptions import ValidationError
 
@@ -26,26 +27,32 @@ class TransactionSerializer(serializers.ModelSerializer):
         fields = ["transaction_id", "store_id", "type", "category", "detail", "cost"]  # ✅ "date" 제거
         read_only_fields = ["transaction_id"]
 
+    def validate_category(self, value):
+
+        if isinstance(value, int) or value.isdigit():  
+            return get_object_or_404(Category, id=int(value))  # ✅ ID로 변환
+        else:
+            category, _ = Category.objects.get_or_create(name=value)  # ✅ 이름으로 변환
+            return category  
+
     def create(self, validated_data):
         store_id = validated_data.pop("store_id")
         category_name = validated_data.pop("category")
 
         store = get_object_or_404(Store, id=store_id)
-
-        # ✅ 카테고리 찾기 (없으면 생성)
-        category, created = Category.objects.get_or_create(name=category_name)
+        category = self.validate_category(category_name)  # ✅ ForeignKey 변환
 
         date_data = self.context["request"].data.get("date", {})
         try:
             transaction_date = datetime(
                 year=date_data["year"], month=date_data["month"], day=date_data["day"]
-            ).date()  # ✅ `date()` 호출하여 `datetime` → `date` 변환
+            ).date()  # ✅ `datetime` → `date` 변환
         except KeyError:
             raise ValidationError({"date": "year, month, day 값을 포함해야 합니다."})
 
         # ✅ `request.user`를 사용해 현재 로그인한 사용자 자동 저장
         transaction = Transaction.objects.create(
-            user=self.context["request"].user,  # 🔥 로그인한 사용자 자동 저장
+            user=self.context["request"].user,
             store=store,
             category=category,
             transaction_type=validated_data["transaction_type"],
@@ -55,3 +62,8 @@ class TransactionSerializer(serializers.ModelSerializer):
         )
 
         return transaction
+    def update(self, instance, validated_data):
+
+        if "category" in validated_data:
+            instance.category = self.validate_category(validated_data.pop("category"))  # ✅ ForeignKey 변환 후 저장
+        return super().update(instance, validated_data)
