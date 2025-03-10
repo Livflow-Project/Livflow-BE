@@ -67,6 +67,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         if "category" in validated_data:
-            instance.category = self.validate_category(validated_data.pop("category"))  # ✅ ForeignKey 변환 후 저장
+            category = self.validate_category(validated_data.pop("category"))
+            instance.category_id = category.id  # ✅ ForeignKey 필드에 ID를 직접 할당
 
         return super().update(instance, validated_data)
