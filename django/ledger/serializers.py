@@ -37,10 +37,11 @@ class TransactionSerializer(serializers.ModelSerializer):
         date_data = self.context["request"].data.get("date", {})
         transaction_date = datetime(year=date_data["year"], month=date_data["month"], day=date_data["day"])
 
-        # ✅ ForeignKey로 연결된 Category 인스턴스 저장
+        # ✅ `request.user`를 사용해 현재 로그인한 사용자 자동 저장
         transaction = Transaction.objects.create(
+            user=self.context["request"].user,  # 🔥 로그인한 사용자 자동 저장
             store=store,
-            category=category,  # 🔥 이제 category가 ForeignKey 객체로 들어감!
+            category=category,
             transaction_type=validated_data["transaction_type"],
             amount=validated_data["amount"],
             date=transaction_date,
@@ -48,3 +49,4 @@ class TransactionSerializer(serializers.ModelSerializer):
         )
 
         return transaction
+
