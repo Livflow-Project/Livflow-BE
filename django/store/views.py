@@ -15,25 +15,27 @@ from django.db.models import Sum
 class StoreListView(APIView):
     permission_classes = [IsAuthenticated]
     
-    @swagger_auto_schema(
-        operation_summary="모든 가게 목록 조회",
-        operation_description="현재 로그인한 사용자의 모든 가게 목록을 반환합니다.",
-        responses={200: "가게 목록 반환", 401: "로그인이 필요합니다."}
-    )
     def get(self, request):
         """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 이번 달의 Ledger 차트 정보 포함 """
         stores = Store.objects.filter(user=request.user)
-
         response_data = []
-        current_year = datetime.now().year
-        current_month = datetime.now().month
 
         for store in stores:
-            # 🔹 Ledger (거래 내역)에서 해당 Store의 이번 달 데이터 가져오기
+            # 🔹 가장 최근 거래 내역 찾기
+            latest_transaction = Transaction.objects.filter(store=store).order_by("-date").first()
+            
+            if latest_transaction:
+                target_year = latest_transaction.date.year
+                target_month = latest_transaction.date.month
+            else:
+                target_year = datetime.now().year
+                target_month = datetime.now().month  # 🔥 거래 내역이 없으면 현재 연/월 사용
+
+            # 🔹 Ledger (거래 내역)에서 해당 Store의 `target_year, target_month` 데이터 가져오기
             transactions = Transaction.objects.filter(
                 store=store,
-                date__year=current_year,
-                date__month=current_month
+                date__year=target_year,
+                date__month=target_month
             ).values("transaction_type", "category__name").annotate(
                 total=Sum("amount")
             ).order_by("-total")[:3]  # 🔥 수입/지출 각각 상위 3개 항목만 반환
@@ -41,9 +43,9 @@ class StoreListView(APIView):
             # 🔹 거래 내역을 `chart` 데이터로 변환
             chart_data = [
                 {
-                    "type": t["transaction_type"],  # ✅ 수입(income) 또는 지출(expense)
-                    "category": t["category__name"],  # ✅ 카테고리명
-                    "cost": float(t["total"])  # ✅ 금액 (Decimal → float 변환)
+                    "type": t["transaction_type"],
+                    "category": t["category__name"],
+                    "cost": float(t["total"])
                 }
                 for t in transactions
             ]
@@ -57,6 +59,7 @@ class StoreListView(APIView):
             })
 
         return Response({"stores": response_data}, status=status.HTTP_200_OK)
+
 
     @swagger_auto_schema(
         operation_summary="새 가게 등록",
