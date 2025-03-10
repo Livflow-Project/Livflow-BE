@@ -131,7 +131,11 @@ class CategoryListCreateView(APIView):
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+    @swagger_auto_schema(
+        operation_summary="새로운 카테고리 추가",
+        request_body=CategorySerializer,
+        responses={201: CategorySerializer(), 400: "유효성 검사 실패"}
+    )
 
     def post(self, request):
         """ ✅ 새로운 카테고리 추가 """
@@ -146,11 +150,22 @@ class CategoryListCreateView(APIView):
 class CategoryDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="특정 카테고리 조회",
+        responses={200: CategorySerializer()}
+    )
+
     def get(self, request, category_id):
         """ ✅ 특정 카테고리 조회 """
         category = get_object_or_404(Category, id=category_id)
         serializer = CategorySerializer(category)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_summary="특정 카테고리 수정",
+        request_body=CategorySerializer,
+        responses={200: CategorySerializer(), 400: "유효성 검사 실패"}
+    )
 
     def put(self, request, category_id):
         """ ✅ 특정 카테고리 수정 """
@@ -161,6 +176,11 @@ class CategoryDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        operation_summary="특정 카테고리 삭제",
+        responses={204: "삭제 완료"}
+    )
 
     def delete(self, request, category_id):
         """ ✅ 특정 카테고리 삭제 """
