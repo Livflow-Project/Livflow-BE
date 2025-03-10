@@ -18,7 +18,7 @@ class StoreInventoryView(APIView):
             {
                 "ingredient_id": str(inv.ingredient.id),
                 "ingredient_name": inv.ingredient.name,
-                "original_stock": inv.original_stock,  # ✅ 기초 재고 추가
+                "original_stock": inv.ingredient.purchase_quantity,
                 "remaining_stock": inv.remaining_stock,
                 "unit": inv.ingredient.unit,
                 "unit_cost": inv.ingredient.unit_cost,  # ✅ unit_cost 추가
@@ -27,8 +27,7 @@ class StoreInventoryView(APIView):
         ]
         return Response(inventory_data, status=status.HTTP_200_OK)
 
-
-# ✅ 특정 재료 사용 (재고 차감)
+ 
 class UseIngredientStockView(APIView):
     def post(self, request, store_id, ingredient_id):
         """ 특정 재료의 재고 사용 처리 """

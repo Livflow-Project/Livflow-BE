@@ -57,11 +57,6 @@ class StoreRecipeListView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
-
 # ✅ 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
     parser_classes = (JSONParser,MultiPartParser, FormParser)
