@@ -13,13 +13,13 @@ class TransactionSerializer(serializers.ModelSerializer):
     store_id = serializers.UUIDField(write_only=True)
     category = serializers.CharField()  # 🔹 카테고리 이름을 직접 받음
     date = serializers.SerializerMethodField()
-    cost = serializers.DecimalField(source="amount", max_digits=10, decimal_places=2)
+    cost = serializers.DecimalField(source="amount", max_digits=10, decimal_places=2, coerce_to_string=False)
     type = serializers.CharField(source="transaction_type")
     detail = serializers.CharField(source="description", required=False)
 
     class Meta:
         model = Transaction
-        fields = ["id", "store_id", "type", "category", "date", "detail", "cost", "created_at"]
+        fields = ["id", "store_id", "type", "category", "date", "detail", "cost"]
         read_only_fields = ["id", "created_at"]
 
     def get_date(self, obj):
