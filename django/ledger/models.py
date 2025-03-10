@@ -5,21 +5,22 @@ from django.utils.timezone import now
 from store.models import Store 
 
 # ✅ 1️⃣ 가계부 카테고리 (ledger category)
-class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)  # 🔹 중복 방지
+class Category(models.Model):  
+    name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
     @classmethod
     def get_default_category(cls):
-        """ ✅ 기본 '미분류' 카테고리 가져오기 (없으면 자동 생성) """
+        """ ✅ 기본 '미분류' 카테고리 가져오기 (없으면 생성) """
         category, created = cls.objects.get_or_create(name="미분류")
-        return category.id  # 🔥 ForeignKey 기본값으로 사용 가능
+        return category.id
 
 
 # ✅ 2️⃣ 가계부 거래 내역 모델
 class Transaction(models.Model):
+    
     TRANSACTION_TYPES = [
         ("income", "Income"),
         ("expense", "Expense"),
@@ -37,7 +38,8 @@ class Transaction(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        default=Category.get_default_category  # ✅ 기본값 설정
+        default=Category.get_default_category,
+        related_name="ledger_transactions"  # ✅ store.Transaction과 구분
     )
 
     date = models.DateField()

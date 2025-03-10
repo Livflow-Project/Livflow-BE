@@ -13,6 +13,7 @@ class Category(models.Model):
 
 # 가계부 거래 내역 모델
 class Transaction(models.Model):
+    
     TRANSACTION_TYPES = [
         ('income', 'Income'),
         ('expense', 'Expense'),
