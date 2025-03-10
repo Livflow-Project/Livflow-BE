@@ -8,6 +8,7 @@ from ledger.models import Category
 from ledger.serializers import TransactionSerializer, CategorySerializer
 from datetime import datetime
 from django.db.models import Sum
+from datetime import date
 
 
 # ✅ 1️⃣ 거래 내역 목록 조회 & 생성
@@ -169,12 +170,11 @@ class LedgerCalendarView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-# ✅ 6️⃣ 특정 날짜의 거래 내역 조회 (일별 거래 조회 API)
-class LedgerDailyTransactionView(APIView):  
+class LedgerDailyTransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, store_id):
-        """ 특정 날짜의 모든 거래 내역 조회 """
+        """ ✅ 특정 날짜의 거래 내역 조회 (요청된 형식에 맞게 수정) """
         year = request.GET.get("year")
         month = request.GET.get("month")
         day = request.GET.get("day")
@@ -182,27 +182,25 @@ class LedgerDailyTransactionView(APIView):
         if not year or not month or not day:
             return Response({"error": "year, month, day 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ 상점 확인
         store = get_object_or_404(Store, id=store_id, user=request.user)
 
-        # ✅ 해당 날짜의 거래 내역 조회
-        transactions = Transaction.objects.filter(
-            store=store,
-            date__year=year,
-            date__month=month,
-            date__day=day
-        )
+        try:
+            target_date = date(int(year), int(month), int(day))  # 🔥 날짜 변환 명확하게 처리
+        except ValueError:
+            return Response({"error": "올바른 날짜를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ 거래 내역을 JSON 형태로 변환
-        transaction_list = [
+        transactions = Transaction.objects.filter(store=store, date=target_date)
+
+        response_data = [
             {
-                "transaction_id": str(t.id),
+                "transaction_id": str(t.id),  # ✅ `id` → `transaction_id`
                 "type": t.transaction_type,
-                "category": t.category.name,
+                "category": t.category.name if t.category else "미분류",  # ✅ 카테고리가 없으면 기본값 처리
                 "detail": t.description or "",
-                "cost": t.amount
+                "cost": float(t.amount)  # ✅ Decimal을 float으로 변환
             }
             for t in transactions
         ]
 
-        return Response(transaction_list, status=status.HTTP_200_OK)
+        return Response(response_data, status=status.HTTP_200_OK)
+
