@@ -33,41 +33,11 @@ class StoreRecipeListView(APIView):
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
-                recipe = serializer.save(store_id=store_id)
+                recipe = serializer.save(store_id=store_id)  # ✅ 원가 계산은 `serializer.create()`에서 실행됨
 
                 print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
-                # ✅ DB에서 RecipeItem 가져오기
-                recipe_items = RecipeItem.objects.filter(recipe=recipe)
-
-                # ✅ 올바른 데이터를 기반으로 원가 계산
-                ingredient_costs = []
-                for item in recipe_items:
-                    ingredient_costs.append({
-                        "ingredient_id": str(item.ingredient.id),
-                        "ingredient_name": item.ingredient.name,
-                        "unit_price": float(item.ingredient.unit_cost),  # ✅ 실제 단가
-                        "required_amount": float(item.quantity_used),  # ✅ 실제 사용량
-                        "unit": item.unit
-                    })
-
-                print(f"🔹 Corrected Ingredient Costs: {ingredient_costs}")
-
-                # ✅ 원가 계산 후 DB에 저장
-                cost_data = calculate_recipe_cost(
-                    ingredients=ingredient_costs,  
-                    sales_price_per_item=recipe.sales_price_per_item,
-                    production_quantity_per_batch=recipe.production_quantity_per_batch
-                )
-
-                # ✅ DB에 저장
-                recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
-                recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
-                recipe.save()
-
-                print(f"🔍 Step 2 - DB Updated: {recipe.total_ingredient_cost}, {recipe.production_cost}")
-
-                # ✅ API 응답 시 DB에서 값을 가져옴
+                # ✅ 응답 데이터 생성 (DB에서 가져온 최신 값 사용)
                 updated_recipe = Recipe.objects.get(id=recipe.id)
 
                 response_data = {
@@ -86,6 +56,7 @@ class StoreRecipeListView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
