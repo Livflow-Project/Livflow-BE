@@ -54,10 +54,16 @@ class LedgerTransactionDetailView(APIView):
         # 🔥 요청 데이터 복사 후 category 처리
         data = request.data.copy()
         
-        # ✅ category가 문자열이면 Category 인스턴스로 변환
-        category_name = data.get("category")
-        if category_name:
-            category, _ = Category.objects.get_or_create(name=category_name)
+        category_input = data.get("category")  # ✅ category 값 확인
+
+        if category_input:
+            if category_input.isdigit():  
+                # ✅ 숫자이면 기존 Category ID로 조회
+                category = get_object_or_404(Category, id=int(category_input))
+            else:
+                # ✅ 문자열이면 카테고리명으로 조회 or 생성
+                category, _ = Category.objects.get_or_create(name=category_input)
+
             data["category"] = category.id  # ✅ ForeignKey에는 ID 저장
 
         serializer = TransactionSerializer(transaction, data=data, partial=True, context={"request": request})
