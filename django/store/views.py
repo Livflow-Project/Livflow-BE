@@ -21,7 +21,7 @@ class StoreListView(APIView):
         responses={200: "가게 목록 반환", 401: "로그인이 필요합니다."}
     )
     def get(self, request):
-        """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 이번 달의 거래 차트 정보 반환 """
+        """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 이번 달의 Ledger 차트 정보 포함 """
         stores = Store.objects.filter(user=request.user)
 
         response_data = []
@@ -29,21 +29,21 @@ class StoreListView(APIView):
         current_month = datetime.now().month
 
         for store in stores:
-            # 🔹 해당 가게의 이번 달 거래 내역 집계
+            # 🔹 Ledger (거래 내역)에서 해당 Store의 이번 달 데이터 가져오기
             transactions = Transaction.objects.filter(
                 store=store,
                 date__year=current_year,
                 date__month=current_month
             ).values("transaction_type", "category__name").annotate(
                 total=Sum("amount")
-            ).order_by("-total")[:3]  # 🔥 상위 3개 항목만 반환
+            ).order_by("-total")[:3]  # 🔥 수입/지출 각각 상위 3개 항목만 반환
 
             # 🔹 거래 내역을 `chart` 데이터로 변환
             chart_data = [
                 {
-                    "type": t["transaction_type"],
-                    "category": t["category__name"],
-                    "cost": float(t["total"])  # 🔹 Decimal → float 변환
+                    "type": t["transaction_type"],  # ✅ 수입(income) 또는 지출(expense)
+                    "category": t["category__name"],  # ✅ 카테고리명
+                    "cost": float(t["total"])  # ✅ 금액 (Decimal → float 변환)
                 }
                 for t in transactions
             ]
@@ -53,7 +53,7 @@ class StoreListView(APIView):
                 "store_id": str(store.id),
                 "name": store.name,
                 "address": store.address,
-                "chart": chart_data  # ✅ 차트 데이터 추가
+                "chart": chart_data  # ✅ Ledger 데이터를 기반으로 차트 추가
             })
 
         return Response({"stores": response_data}, status=status.HTTP_200_OK)
