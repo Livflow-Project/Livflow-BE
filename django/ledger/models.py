@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from users.models import CustomUser
 from django.utils.timezone import now
-
+from store.models import Store 
 
 # ✅ 1️⃣ 가계부 카테고리 (ledger category)
 class Category(models.Model):
@@ -26,8 +26,8 @@ class Transaction(models.Model):
     ]
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="store_transactions")
-    store = models.ForeignKey("Store", on_delete=models.CASCADE, related_name="transactions", default=1)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ledger_transactions")
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="ledger_transactions")
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     transaction_type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)
     
