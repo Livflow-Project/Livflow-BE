@@ -26,14 +26,16 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ["transaction_id", "store_id", "type", "category", "detail", "cost"]  # ✅ "date" 제거
         read_only_fields = ["transaction_id"]
-
+        
     def validate_category(self, value):
+        if isinstance(value, Category):  
+            return value  # ✅ 이미 Category 객체라면 그대로 반환
 
-        if isinstance(value, int) or value.isdigit():  
+        if isinstance(value, int) or str(value).isdigit():  
             return get_object_or_404(Category, id=int(value))  # ✅ ID로 변환
-        else:
-            category, _ = Category.objects.get_or_create(name=value)  # ✅ 이름으로 변환
-            return category  
+
+        category, _ = Category.objects.get_or_create(name=value)  # ✅ 이름으로 변환
+        return category  
 
     def create(self, validated_data):
         store_id = validated_data.pop("store_id")
