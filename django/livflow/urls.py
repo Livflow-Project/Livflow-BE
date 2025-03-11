@@ -31,7 +31,7 @@ urlpatterns = [
    path('api/ledger/', include('ledger.urls')),  # 'ledger' 앱의 URL 패턴 추가
    path('api/ingredients/', include('ingredients.urls')),
    path('api/inventory/', include('inventory.urls')),  # ✅ 'inventory.urls'로 수정
-   path('api/salesforecast/', include('salesforecast.urls')),
+   # path('api/salesforecast/', include('salesforecast.urls')),
 
    
    
