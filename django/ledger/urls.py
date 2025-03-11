@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     LedgerTransactionListCreateView, LedgerTransactionDetailView,
     CategoryListCreateView, CategoryDetailView,
-    LedgerCalendarView, LedgerDailyTransactionView
+    LedgerCalendarView
 )
 
 urlpatterns = [
@@ -12,7 +12,6 @@ urlpatterns = [
 
     # 🔹 캘린더 및 일별 거래 조회 API
     path('<uuid:store_id>/calendar/', LedgerCalendarView.as_view(), name='ledger-calendar'),
-    path('<uuid:store_id>/transactions/daily/', LedgerDailyTransactionView.as_view(), name='ledger-daily-transactions'),
 
     # 🔹 카테고리 관련 API
     path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),
