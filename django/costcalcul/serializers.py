@@ -74,11 +74,13 @@ class RecipeSerializer(serializers.ModelSerializer):
             inventory.remaining_stock -= required_amount  # ✅ 같은 타입끼리 연산
             inventory.save()
 
+            unit = ingredient_data.get("unit", None)
+
             RecipeItem.objects.create(
                 recipe=recipe,
                 ingredient=ingredient,
                 quantity_used=required_amount,
-                unit=ingredient_data["unit"]
+                unit=unit
             )
 
             ingredient_costs.append({
@@ -86,7 +88,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 "ingredient_name": ingredient.name,
                 "unit_price": ingredient.unit_cost,  
                 "quantity_used": required_amount,
-                "unit": ingredient_data["unit"]
+                "unit": unit
             })
 
         print(f"📝 Ingredient Costs List: {ingredient_costs}")  # ✅ ingredient_costs 리스트 확인
@@ -121,3 +123,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     def get_production_cost(self, obj):
         """✅ 응답에 `production_cost` 추가 (None 방지)"""
         return getattr(obj, "production_cost", 0)
+
+    def to_representation(self, instance):
+        """🚀 응답 데이터에서 `recipe_cost`가 `None`이면 기본값을 `0`으로 설정"""
+        data = super().to_representation(instance)
+        data["recipe_cost"] = data["recipe_cost"] if data["recipe_cost"] is not None else 0  # ✅ None → 0 변환
+        return data
