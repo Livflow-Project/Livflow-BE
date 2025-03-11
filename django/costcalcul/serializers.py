@@ -31,14 +31,12 @@ class RecipeItemSerializer(serializers.ModelSerializer):
 # ✅ 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
     recipe_name = serializers.CharField(source="name")
-    recipe_cost = serializers.DecimalField(source="sales_price_per_item", max_digits=10, decimal_places=2)
+    recipe_cost = serializers.DecimalField(source="sales_price_per_item", max_digits=10, decimal_places=2, required=False)  # ✅ 선택 값
     recipe_img = serializers.ImageField(required=False)
-    ingredients = RecipeItemSerializer(many=True, write_only=True)  
-    production_quantity = serializers.IntegerField(source="production_quantity_per_batch")
+    ingredients = RecipeItemSerializer(many=True, write_only=True, required=False)  # ✅ 선택 값
+    production_quantity = serializers.IntegerField(source="production_quantity_per_batch", required=False)  # ✅ 선택 값
     total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-
-
 
     class Meta:
         model = Recipe
@@ -46,7 +44,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 'id', 'recipe_name', 'recipe_cost', 'recipe_img', 
                 'is_favorites', 'ingredients', 'production_quantity', 
                 'total_ingredient_cost', 'production_cost'
-                ]
+        ]
         read_only_fields = ['id']
 
 
