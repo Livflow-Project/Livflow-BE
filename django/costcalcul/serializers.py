@@ -74,7 +74,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             inventory.remaining_stock -= required_amount  # ✅ 같은 타입끼리 연산
             inventory.save()
 
-            unit = ingredient_data.get("unit", None)
+            unit = ingredient_data.get("unit", ingredient.unit)
 
             RecipeItem.objects.create(
                 recipe=recipe,
