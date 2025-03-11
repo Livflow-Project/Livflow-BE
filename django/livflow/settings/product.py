@@ -46,7 +46,7 @@ CUSTOM_INSTALLED_APPS = [
     'ledger',
     'ingredients',
     'inventory',
-    'salesforcast', 
+    'salesforcast',
 ]
 
 INSTALLED_APPS = DEFAULT_DJANGO_APPS + CUSTOM_INSTALLED_APPS
