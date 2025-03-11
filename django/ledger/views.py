@@ -204,37 +204,45 @@ class LedgerCalendarView(APIView):
 
     def get(self, request, store_id):
         """ 특정 월의 거래 내역을 조회하여, 달력 & 차트 데이터 반환 """
-        year = int(request.GET.get("year"))
-        month = int(request.GET.get("month"))
+        year = request.GET.get("year")
+        month = request.GET.get("month")
+        day = request.GET.get("day")  # ✅ day 값 추가
 
         if not year or not month:
             return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            year = int(year)
+            month = int(month)
+            day = int(day) if day else None  # ✅ day가 있을 경우 int로 변환
+        except ValueError:
+            return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         # ✅ 상점 확인
         store = get_object_or_404(Store, id=store_id, user=request.user)
 
-        # ✅ 해당 월의 모든 거래 조회
-        transactions = Transaction.objects.filter(
-            store=store,
-            date__year=year,
-            date__month=month
-        )
+        # ✅ 해당 월(또는 특정 날짜)의 거래 조회
+        filters = {"store": store, "date__year": year, "date__month": month}
+        if day:
+            filters["date__day"] = day  # ✅ day 필터 추가
+
+        transactions = Transaction.objects.filter(**filters)
 
         # ✅ 날짜별 수입/지출 여부 정리
         day_summary = {}
         for t in transactions:
-            day = t.date.day
-            if day not in day_summary:
-                day_summary[day] = {"hasIncome": False, "hasExpense": False}
+            trans_day = t.date.day
+            if trans_day not in day_summary:
+                day_summary[trans_day] = {"hasIncome": False, "hasExpense": False}
 
             if t.transaction_type == "income":
-                day_summary[day]["hasIncome"] = True
+                day_summary[trans_day]["hasIncome"] = True
             else:
-                day_summary[day]["hasExpense"] = True
+                day_summary[trans_day]["hasExpense"] = True
 
         days_list = [{"day": day, **summary} for day, summary in day_summary.items()]
 
-        # ✅ 카테고리별 총 수입/지출 계산 (🚨 `ledger.models.Category` 참조)
+        # ✅ 카테고리별 총 수입/지출 계산
         category_summary = transactions.values("transaction_type", "category__name").annotate(
             total=Sum("amount")
         ).order_by("-total")[:5]  # ✅ 상위 5개 카테고리만 반환
@@ -259,6 +267,7 @@ class LedgerCalendarView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 
 
