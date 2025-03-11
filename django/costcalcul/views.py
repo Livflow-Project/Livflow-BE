@@ -123,20 +123,21 @@ class StoreRecipeDetailView(APIView):
         if serializer.is_valid():
             recipe = serializer.save()
 
-            # ✅ 기존 재료 삭제 후 새로운 재료 추가
-            RecipeItem.objects.filter(recipe=recipe).delete()
-            ingredients = request.data.get("ingredients", [])
-            for ingredient_data in ingredients:
-                ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
-                RecipeItem.objects.create(
-                    recipe=recipe,
-                    ingredient=ingredient,
-                    quantity_used=ingredient_data["required_amount"],
-                    unit=ingredient_data["unit"]
-                )
+            # ✅ ingredients가 있으면 업데이트, 없으면 기존 값 유지
+            ingredients = request.data.get("ingredients", None)
+            if ingredients is not None:  
+                RecipeItem.objects.filter(recipe=recipe).delete()
+                for ingredient_data in ingredients:
+                    ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
+                    RecipeItem.objects.create(
+                        recipe=recipe,
+                        ingredient=ingredient,
+                        quantity_used=ingredient_data["required_amount"],
+                    )
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     @swagger_auto_schema(
         operation_summary="특정 레시피 삭제",

@@ -7,26 +7,12 @@ from decimal import Decimal
 from .utils import calculate_recipe_cost
 import logging
 from django.db import transaction
+from rest_framework import serializers
+from .serializers import RecipeItemSerializer
+
 
 
 logger = logging.getLogger(__name__)
-
-# ✅ 레시피 재료(RecipeItem) 시리얼라이저 (Nested Serializer)
-class RecipeItemSerializer(serializers.ModelSerializer):
-    ingredient_id = serializers.UUIDField(write_only=True)
-    required_amount = serializers.DecimalField(source="quantity_used", max_digits=10, decimal_places=2)  
-    unit = serializers.CharField(required=True)
-    unit_price = serializers.SerializerMethodField()  # ✅ unit_price 추가
-
-    class Meta:
-        model = RecipeItem
-        fields = ['id', 'ingredient_id', 'required_amount', 'unit', 'unit_price']
-        read_only_fields = ['id']
-
-    def get_unit_price(self, obj):
-        """✅ Ingredient의 unit_cost를 unit_price로 변환"""
-        return float(obj.ingredient.unit_cost) if obj.ingredient else 0
-
 
 # ✅ 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
@@ -47,6 +33,15 @@ class RecipeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
+    def validate(self, data):
+        """🚀 빈 값이면 DB에서 기존 값 가져오기"""
+        instance = self.instance  # ✅ 기존 Recipe 객체 (PUT 요청 시)
+
+        if instance:
+            data.setdefault("sales_price_per_item", instance.sales_price_per_item)  # ✅ 기존 값 유지
+            data.setdefault("production_quantity_per_batch", instance.production_quantity_per_batch)  # ✅ 기존 값 유지
+
+        return data
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
@@ -114,9 +109,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         return updated_recipe  # ✅ 시리얼라이저에 반영
 
-
-
-
     def get_total_ingredient_cost(self, obj):
         """✅ 응답에 `total_ingredient_cost` 추가 (None 방지)"""
         return getattr(obj, "total_ingredient_cost", 0)
@@ -124,3 +116,19 @@ class RecipeSerializer(serializers.ModelSerializer):
     def get_production_cost(self, obj):
         """✅ 응답에 `production_cost` 추가 (None 방지)"""
         return getattr(obj, "production_cost", 0)
+
+
+# ✅ 레시피 재료(RecipeItem) 시리얼라이저 추가
+class RecipeItemSerializer(serializers.ModelSerializer):
+    ingredient_id = serializers.UUIDField(write_only=True)
+    required_amount = serializers.DecimalField(source="quantity_used", max_digits=10, decimal_places=2)  
+    unit_price = serializers.SerializerMethodField() 
+
+    class Meta:
+        model = RecipeItem
+        fields = ['id', 'ingredient_id', 'required_amount', 'unit_price']
+        read_only_fields = ['id']
+
+    def get_unit_price(self, obj):
+        """✅ Ingredient의 unit_cost를 unit_price로 변환"""
+        return float(obj.ingredient.unit_cost) if obj.ingredient else 0
