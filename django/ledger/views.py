@@ -190,23 +190,26 @@ class CategoryDetailView(APIView):
     
     
     # ✅ 5️⃣ 특정 월의 거래 내역을 조회 (캘린더 API)
+from django.db.models import Sum
+
 class LedgerCalendarView(APIView):  
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_summary="특정 월의 거래 내역 조회",
+        operation_summary="특정 월 또는 특정 날짜의 거래 내역 조회",
         manual_parameters=[
             openapi.Parameter("year", openapi.IN_QUERY, description="조회할 연도", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter("month", openapi.IN_QUERY, description="조회할 월", type=openapi.TYPE_INTEGER, required=True)
+            openapi.Parameter("month", openapi.IN_QUERY, description="조회할 월", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter("day", openapi.IN_QUERY, description="조회할 일", type=openapi.TYPE_INTEGER, required=False),
         ],
-        responses={200: "캘린더 및 차트 데이터 반환"}
+        responses={200: "달력 & 차트 데이터 반환"}
     )
 
     def get(self, request, store_id):
-        """ 특정 월의 거래 내역을 조회하여, 달력 & 차트 데이터 반환 """
+        """ ✅ 특정 월의 거래 내역 조회 (day가 있으면 특정 날짜의 거래 내역 반환) """
         year = request.GET.get("year")
         month = request.GET.get("month")
-        day = request.GET.get("day")  # ✅ day 값 추가
+        day = request.GET.get("day")  # ✅ day 추가
 
         if not year or not month:
             return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
@@ -214,104 +217,70 @@ class LedgerCalendarView(APIView):
         try:
             year = int(year)
             month = int(month)
-            day = int(day) if day else None  # ✅ day가 있을 경우 int로 변환
+            day = int(day) if day else None  # ✅ day가 있을 경우 int 변환
         except ValueError:
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         # ✅ 상점 확인
         store = get_object_or_404(Store, id=store_id, user=request.user)
 
-        # ✅ 해당 월(또는 특정 날짜)의 거래 조회
+        # ✅ 거래 필터링
         filters = {"store": store, "date__year": year, "date__month": month}
         if day:
             filters["date__day"] = day  # ✅ day 필터 추가
 
         transactions = Transaction.objects.filter(**filters)
 
-        # ✅ 날짜별 수입/지출 여부 정리
-        day_summary = {}
-        for t in transactions:
-            trans_day = t.date.day
-            if trans_day not in day_summary:
-                day_summary[trans_day] = {"hasIncome": False, "hasExpense": False}
+        if day:
+            # ✅ 특정 날짜의 거래 내역 응답
+            response_data = [
+                {
+                    "transaction_id": str(t.id),
+                    "type": t.transaction_type,
+                    "category": t.category.name if t.category else "미분류",
+                    "detail": t.description or "",
+                    "cost": float(t.amount)
+                }
+                for t in transactions
+            ]
+        else:
+            # ✅ 특정 월의 달력 & 차트 데이터 응답
+            day_summary = {}
+            for t in transactions:
+                trans_day = t.date.day
+                if trans_day not in day_summary:
+                    day_summary[trans_day] = {"hasIncome": False, "hasExpense": False}
 
-            if t.transaction_type == "income":
-                day_summary[trans_day]["hasIncome"] = True
-            else:
-                day_summary[trans_day]["hasExpense"] = True
+                if t.transaction_type == "income":
+                    day_summary[trans_day]["hasIncome"] = True
+                else:
+                    day_summary[trans_day]["hasExpense"] = True
 
-        days_list = [{"day": day, **summary} for day, summary in day_summary.items()]
+            days_list = [{"day": d, **summary} for d, summary in day_summary.items()]
 
-        # ✅ 카테고리별 총 수입/지출 계산
-        category_summary = transactions.values("transaction_type", "category__name").annotate(
-            total=Sum("amount")
-        ).order_by("-total")[:5]  # ✅ 상위 5개 카테고리만 반환
+            category_summary = transactions.values("transaction_type", "category__name").annotate(
+                total=Sum("amount")
+            ).order_by("-total")[:5]
 
-        category_data = [
-            {
-                "type": c["transaction_type"],
-                "category": c["category__name"] if c["category__name"] else "미분류",  # ✅ 카테고리 없으면 "미분류"
-                "total": float(c["total"])  # ✅ Decimal → float 변환
+            category_data = [
+                {
+                    "type": c["transaction_type"],
+                    "category": c["category__name"] if c["category__name"] else "미분류",
+                    "total": float(c["total"])
+                }
+                for c in category_summary
+            ]
+
+            response_data = {
+                "days": days_list,
+                "chart": {
+                    "totalIncome": transactions.filter(transaction_type="income").aggregate(Sum("amount"))["amount__sum"] or 0,
+                    "totalExpense": transactions.filter(transaction_type="expense").aggregate(Sum("amount"))["amount__sum"] or 0,
+                    "categories": category_data,
+                }
             }
-            for c in category_summary
-        ]
-
-        # ✅ 최종 응답 데이터
-        response_data = {
-            "days": days_list,
-            "chart": {
-                "totalIncome": transactions.filter(transaction_type="income").aggregate(Sum("amount"))["amount__sum"] or 0,
-                "totalExpense": transactions.filter(transaction_type="expense").aggregate(Sum("amount"))["amount__sum"] or 0,
-                "categories": category_data,
-            }
-        }
 
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-
-
-class LedgerDailyTransactionView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(
-        operation_summary="특정 날짜의 거래 내역 조회",
-        manual_parameters=[
-            openapi.Parameter("year", openapi.IN_QUERY, description="조회할 연도", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter("month", openapi.IN_QUERY, description="조회할 월", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter("day", openapi.IN_QUERY, description="조회할 일", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        responses={200: "거래 내역 리스트 반환"}
-    )
-
-    def get(self, request, store_id):
-        """ ✅ 특정 날짜의 거래 내역 조회 (요청된 형식에 맞게 수정) """
-        year = request.GET.get("year")
-        month = request.GET.get("month")
-        day = request.GET.get("day")
-
-        if not year or not month or not day:
-            return Response({"error": "year, month, day 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        store = get_object_or_404(Store, id=store_id, user=request.user)
-
-        try:
-            target_date = date(int(year), int(month), int(day))  # 🔥 날짜 변환 명확하게 처리
-        except ValueError:
-            return Response({"error": "올바른 날짜를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
-
-        transactions = Transaction.objects.filter(store=store, date=target_date)
-
-        response_data = [
-            {
-                "transaction_id": str(t.id),  # ✅ `id` → `transaction_id`
-                "type": t.transaction_type,
-                "category": t.category.name if t.category else "미분류",  # ✅ 카테고리가 없으면 기본값 처리
-                "detail": t.description or "",
-                "cost": float(t.amount)  # ✅ Decimal을 float으로 변환
-            }
-            for t in transactions
-        ]
-
-        return Response(response_data, status=status.HTTP_200_OK)
 
