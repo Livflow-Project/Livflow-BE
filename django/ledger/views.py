@@ -204,8 +204,8 @@ class LedgerCalendarView(APIView):
 
     def get(self, request, store_id):
         """ 특정 월의 거래 내역을 조회하여, 달력 & 차트 데이터 반환 """
-        year = request.GET.get("year")
-        month = request.GET.get("month")
+        year = int(request.GET.get("year"))
+        month = int(request.GET.get("month"))
 
         if not year or not month:
             return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
