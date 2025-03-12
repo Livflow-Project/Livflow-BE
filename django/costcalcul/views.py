@@ -84,28 +84,21 @@ class StoreRecipeDetailView(APIView):
         ingredients_data = [
             {
                 "ingredient_id": str(item.ingredient.id),  
-                "ingredient_name": item.ingredient.name,
-                "unit_price": item.ingredient.unit_cost,  
-                "required_amount": item.quantity_used, 
-                "unit": item.unit
+                "required_amount": item.quantity_used  # ✅ 필요한 데이터만 포함
             }
             for item in ingredients
-        ]
+    ]
 
-        # ✅ DB에서 저장된 원가 값 가져오기
+        # ✅ 응답 데이터 변환
         response_data = {
-            "recipe_id": str(recipe.id),  
+            "recipe_id": str(recipe.id),  # ✅ UUID 유지 (프론트에서 crypto.randomUUID()로 변경)
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
-            "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
-            "is_favorites": recipe.is_favorites,
-            "ingredients": ingredients_data,  # ✅ 재료 정보 추가
-            "total_ingredient_cost": float(recipe.total_ingredient_cost),  # ✅ DB 값 가져오기
+            "recipe_img": "americano.jpg",  # ✅ 고정값 설정
+            "is_favorites": True,  # ✅ 항상 true로 설정
+            "ingredients": ingredients_data,  # ✅ 필요한 필드만 유지
             "production_quantity": recipe.production_quantity_per_batch,
-            "production_cost": float(recipe.production_cost),  # ✅ DB 값 가져오기
         }
-
-        print(f"📌 Final API Response: {response_data}")  # ✅ 최종 응답 확인
 
         return Response(response_data, status=status.HTTP_200_OK)
 
