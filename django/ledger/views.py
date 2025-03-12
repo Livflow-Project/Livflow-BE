@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from store.models import Store, Transaction
+from store.models import Store  
+from ledger.models import Transaction
 from ledger.models import Category
 from ledger.serializers import TransactionSerializer, CategorySerializer
 from datetime import datetime
@@ -24,7 +25,6 @@ class LedgerTransactionListCreateView(APIView):
     )    
 #'<uuid:store_id>/transactions/
     def get(self, request, store_id):
-        """ ✅ 특정 상점의 거래 내역 조회 (날짜별 필터 적용) """
         store = get_object_or_404(Store, id=store_id, user=request.user)
 
         year = request.GET.get("year")
@@ -33,7 +33,6 @@ class LedgerTransactionListCreateView(APIView):
 
         print(f"📌 [DEBUG] 요청된 파라미터 - year: {year}, month: {month}, day: {day}")
 
-        # ✅ 숫자로 변환
         try:
             year = int(year)
             month = int(month)
@@ -41,16 +40,17 @@ class LedgerTransactionListCreateView(APIView):
         except ValueError:
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ 거래 내역 필터링
-        transactions = Transaction.objects.using('default').filter(store=store, date__year=year, date__month=month)
+        # ✅ ledger.models.Transaction을 조회하도록 변경
+        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month)
         if day:
             transactions = transactions.filter(date__day=day)
 
-        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  # ✅ 실제 SQL 확인
-        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  # ✅ 데이터 개수 확인
+        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  
+        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  
 
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
     @swagger_auto_schema(
