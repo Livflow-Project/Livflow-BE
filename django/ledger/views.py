@@ -42,15 +42,12 @@ class LedgerTransactionListCreateView(APIView):
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         # ✅ 거래 내역 필터링
-        filters = {"store": store, "date__year": year, "date__month": month}
+        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month)
         if day:
-            filters["date__day"] = day  # ✅ day 필터 추가
-
-        transactions = Transaction.objects.filter(**filters)
+            transactions = transactions.filter(date__day=day)
 
         print(f"📌 [DEBUG] SQL Query: {transactions.query}")  # ✅ 실제 SQL 확인
         print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  # ✅ 데이터 개수 확인
-        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values())}")  # ✅ 실제 데이터 확인
 
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -76,16 +73,14 @@ class LedgerTransactionListCreateView(APIView):
                 with transaction.atomic():  # ✅ 트랜잭션 강제 적용
                     transaction_obj = serializer.save()
 
-                    # ✅ 강제 커밋 실행
-                    transaction.on_commit(lambda: print("📌 [DEBUG] 트랜잭션이 커밋되었습니다!"))
-
-                    # ✅ DB에 즉시 반영 시도
+                    # ✅ DB에 즉시 반영 확인
                     transaction_obj.refresh_from_db()
-                    print(f"📌 [DEBUG] `refresh_from_db()` 후 ID 확인: {transaction_obj.id}, 날짜: {transaction_obj.date}")
+                    print(f"📌 [DEBUG] 저장된 Transaction - ID: {transaction_obj.id}, 날짜: {transaction_obj.date}")
 
-                    # ✅ 저장 후 즉시 DB에서 다시 조회해보기
+                    # ✅ 저장 후 즉시 DB에서 다시 조회
                     db_check = Transaction.objects.filter(id=transaction_obj.id).exists()
-                    print(f"📌 [DEBUG] DB에 정상적으로 저장되었나?: {db_check}")
+                    if not db_check:
+                        print(f"⚠️ [ERROR] `ledger_transaction` 테이블이 아니라 다른 테이블에 저장되었을 가능성 있음!")
 
                 return Response(TransactionSerializer(transaction_obj).data, status=status.HTTP_201_CREATED)
 
