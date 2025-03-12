@@ -25,7 +25,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Transaction
-        fields = ["transaction_id", "store_id", "type", "category", "detail", "cost"]  # ✅ "date" 제거
+        fields = ["transaction_id", "store_id", "type", "category", "detail", "cost", "date"]  # ✅ "date" 제거
         read_only_fields = ["transaction_id"]
         
     def validate_category(self, value):
