@@ -24,48 +24,37 @@ class LedgerTransactionListCreateView(APIView):
     )    
 #'<uuid:store_id>/transactions/
     def get(self, request, store_id):
-        """ ✅ 특정 날짜의 거래 내역 조회 (year, month, day가 모두 주어지면 필터링) """
+        """ ✅ 특정 상점의 거래 내역 조회 (날짜별 필터 적용) """
+        store = get_object_or_404(Store, id=store_id, user=request.user)
+
         year = request.GET.get("year")
         month = request.GET.get("month")
-        day = request.GET.get("day")  # ✅ day 추가
+        day = request.GET.get("day")
 
-        if not year or not month:
-            return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+        print(f"📌 [DEBUG] 요청된 파라미터 - year: {year}, month: {month}, day: {day}")
 
+        # ✅ 숫자로 변환
         try:
             year = int(year)
             month = int(month)
-            day = int(day) if day else None  # ✅ day 값이 있으면 int 변환
+            day = int(day) if day else None
         except ValueError:
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ 상점 확인
-        store = get_object_or_404(Store, id=store_id, user=request.user)
-
-        # ✅ 거래 필터링
+        # ✅ 거래 내역 필터링
         filters = {"store": store, "date__year": year, "date__month": month}
         if day:
             filters["date__day"] = day  # ✅ day 필터 추가
 
         transactions = Transaction.objects.filter(**filters)
 
-        # ✅ 디버깅 로그 추가
-        print(f"📌 [DEBUG] SQL Query: {transactions.query}")
-        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")
-        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values('date', 'amount', 'transaction_type'))}")
+        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  # ✅ 실제 SQL 확인
+        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  # ✅ 데이터 개수 확인
+        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values())}")  # ✅ 실제 데이터 확인
 
-        response_data = [
-            {
-                "transaction_id": str(t.id),
-                "type": t.transaction_type,
-                "category": t.category.name if t.category else "미분류",
-                "detail": t.description or "",
-                "cost": float(t.amount)
-            }
-            for t in transactions
-        ]
+        serializer = TransactionSerializer(transactions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response(response_data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_summary="거래 내역 생성",
