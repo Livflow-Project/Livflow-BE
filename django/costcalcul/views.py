@@ -119,7 +119,7 @@ class StoreRecipeDetailView(APIView):
         recipe = serializer.save()
 
         # ✅ ingredients가 있으면 업데이트, 없으면 기존 값 유지
-        ingredients = request.data.get("ingredients", None)  # ✅ if 블록 안으로 이동
+        ingredients = request.data.get("ingredients", None)
 
         # ✅ ingredients가 문자열이면 리스트로 변환
         if isinstance(ingredients, str):
@@ -145,7 +145,8 @@ class StoreRecipeDetailView(APIView):
         elif ingredients is not None:  # 리스트나 문자열이 아닐 경우 에러 반환
             return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)  # ✅ 정상 응답 반환
+        # ✅ ingredients가 `None`이거나 빈배열일 경우에도 정상적으로 응답을 반환하도록 함
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
