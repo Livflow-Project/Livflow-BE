@@ -6,7 +6,8 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth import get_user_model
-from .models import Store, Transaction
+from .models import Store  
+from ledger.models import Transaction 
 from .serializers import StoreSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime
@@ -28,7 +29,7 @@ class StoreListView(APIView):
 
         for store in stores:
             # 🔹 가장 최근 거래 내역 찾기
-            latest_transaction = Transaction.objects.filter(store=store).order_by("-date").first()
+            latest_transaction = Transaction.objects.using('default').filter(store=store).order_by("-date").first()
             
             if latest_transaction:
                 target_year = latest_transaction.date.year
@@ -38,7 +39,7 @@ class StoreListView(APIView):
                 target_month = datetime.now().month  # 🔥 거래 내역이 없으면 현재 연/월 사용
 
             # 🔹 Ledger (거래 내역)에서 해당 Store의 `target_year, target_month` 데이터 가져오기
-            transactions = Transaction.objects.filter(
+            transactions = Transaction.objects.using('default').filter(
                 store=store,
                 date__year=target_year,
                 date__month=target_month

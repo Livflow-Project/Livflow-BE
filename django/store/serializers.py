@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Store, Transaction, Category
+from .models import Store, Category
+from ledger.models import Transaction, Category
 
 class StoreSerializer(serializers.ModelSerializer):
     store_id = serializers.UUIDField(source='id', read_only=True)
