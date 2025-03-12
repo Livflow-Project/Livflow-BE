@@ -20,8 +20,9 @@ class TransactionSerializer(serializers.ModelSerializer):
         source="amount", max_digits=10, decimal_places=2, coerce_to_string=False
     )  # ✅ Decimal → float 변환
     type = serializers.CharField(source="transaction_type")  # ✅ "transaction_type" → "type"
-    detail = serializers.CharField(source="description", required=False)  # ✅ "description" → "detail"
-
+    detail = serializers.CharField(source="description", required=False, allow_blank=True)  # ✅ "description" → "detail"
+    date = serializers.DateField() 
+    
     class Meta:
         model = Transaction
         fields = ["transaction_id", "store_id", "type", "category", "detail", "cost"]  # ✅ "date" 제거
@@ -46,7 +47,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
         date_data = self.context["request"].data.get("date", {})
         
-            # ✅ 날짜 디버깅 추가
+        # ✅ 날짜 디버깅 추가
         print(f"📌 [DEBUG] 받은 date 데이터: {date_data}")
         
         try:
@@ -79,3 +80,4 @@ class TransactionSerializer(serializers.ModelSerializer):
             instance.category_id = category.id  # ✅ ForeignKey 필드에 ID를 직접 할당
 
         return super().update(instance, validated_data)
+    
