@@ -22,13 +22,50 @@ class LedgerTransactionListCreateView(APIView):
         operation_summary="특정 상점의 모든 거래 내역 조회",
         responses={200: TransactionSerializer(many=True)}
     )    
-
+#'<uuid:store_id>/transactions/
     def get(self, request, store_id):
-        """ ✅ 특정 상점의 모든 거래 내역 조회 """
+        """ ✅ 특정 날짜의 거래 내역 조회 (year, month, day가 모두 주어지면 필터링) """
+        year = request.GET.get("year")
+        month = request.GET.get("month")
+        day = request.GET.get("day")  # ✅ day 추가
+
+        if not year or not month:
+            return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+            month = int(month)
+            day = int(day) if day else None  # ✅ day 값이 있으면 int 변환
+        except ValueError:
+            return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ 상점 확인
         store = get_object_or_404(Store, id=store_id, user=request.user)
-        transactions = Transaction.objects.filter(store=store)
-        serializer = TransactionSerializer(transactions, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # ✅ 거래 필터링
+        filters = {"store": store, "date__year": year, "date__month": month}
+        if day:
+            filters["date__day"] = day  # ✅ day 필터 추가
+
+        transactions = Transaction.objects.filter(**filters)
+
+        # ✅ 디버깅 로그 추가
+        print(f"📌 [DEBUG] SQL Query: {transactions.query}")
+        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")
+        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values('date', 'amount', 'transaction_type'))}")
+
+        response_data = [
+            {
+                "transaction_id": str(t.id),
+                "type": t.transaction_type,
+                "category": t.category.name if t.category else "미분류",
+                "detail": t.description or "",
+                "cost": float(t.amount)
+            }
+            for t in transactions
+        ]
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_summary="거래 내역 생성",
@@ -36,6 +73,7 @@ class LedgerTransactionListCreateView(APIView):
         responses={201: TransactionSerializer()}
     )
 
+#/ledger/{storeId}/transactions
     def post(self, request, store_id):
         """ ✅ 거래 내역 생성 """
         data = request.data.copy()
@@ -56,7 +94,8 @@ class LedgerTransactionDetailView(APIView):
         operation_summary="특정 거래 내역 조회",
         responses={200: TransactionSerializer()}
     )    
-
+    
+#<uuid:store_id>/transactions/<uuid:transaction_id>/
     def get(self, request, store_id, transaction_id):
         """ ✅ 특정 거래 내역 조회 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
@@ -71,6 +110,7 @@ class LedgerTransactionDetailView(APIView):
         responses={200: TransactionSerializer()}
     )
 
+#/ledger/{storeId}/transactions/{transactionId}
     def put(self, request, store_id, transaction_id):
         """ ✅ 특정 거래 내역 수정 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
@@ -137,6 +177,7 @@ class CategoryListCreateView(APIView):
         responses={201: CategorySerializer(), 400: "유효성 검사 실패"}
     )
 
+
     def post(self, request):
         """ ✅ 새로운 카테고리 추가 """
         serializer = CategorySerializer(data=request.data)
@@ -187,11 +228,8 @@ class CategoryDetailView(APIView):
         category = get_object_or_404(Category, id=category_id)
         category.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
-    
-    
-    # ✅ 5️⃣ 특정 월의 거래 내역을 조회 (캘린더 API)
-from django.db.models import Sum
 
+#'<uuid:store_id>/calendar/'
 class LedgerCalendarView(APIView):  
     permission_classes = [IsAuthenticated]
 
@@ -220,9 +258,9 @@ class LedgerCalendarView(APIView):
         try:
             year = int(year)
             month = int(month)
-            day = int(day) if day else None  # ✅ day가 있을 경우 int 변환
         except ValueError:
-            return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "year와 month는 필수 값이며, 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
 
         # ✅ 상점 확인
         store = get_object_or_404(Store, id=store_id, user=request.user)
