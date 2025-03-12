@@ -11,7 +11,7 @@ from django.db.models import Sum
 from datetime import date
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+from django.db import transaction
 
 
 # ✅ 1️⃣ 거래 내역 목록 조회 & 생성
@@ -63,29 +63,38 @@ class LedgerTransactionListCreateView(APIView):
     )
 
 #/ledger/{storeId}/transactions
+
+
     def post(self, request, store_id):
-        """ ✅ 거래 내역 생성 """
+        """ ✅ 거래 내역 생성 (트랜잭션 강제 커밋 추가) """
         data = request.data.copy()
         data["store_id"] = str(store_id)  # 🔹 store_id 추가
 
         serializer = TransactionSerializer(data=data, context={"request": request})
         if serializer.is_valid():
-            transaction = serializer.save()
-
-            # ✅ DB에 즉시 반영 시도
             try:
-                transaction.refresh_from_db()
-                print(f"📌 [DEBUG] `refresh_from_db()` 후 ID 확인: {transaction.id}, 날짜: {transaction.date}")
+                with transaction.atomic():  # ✅ 트랜잭션 강제 적용
+                    transaction_obj = serializer.save()
+
+                    # ✅ 강제 커밋 실행
+                    transaction.on_commit(lambda: print("📌 [DEBUG] 트랜잭션이 커밋되었습니다!"))
+
+                    # ✅ DB에 즉시 반영 시도
+                    transaction_obj.refresh_from_db()
+                    print(f"📌 [DEBUG] `refresh_from_db()` 후 ID 확인: {transaction_obj.id}, 날짜: {transaction_obj.date}")
+
+                    # ✅ 저장 후 즉시 DB에서 다시 조회해보기
+                    db_check = Transaction.objects.filter(id=transaction_obj.id).exists()
+                    print(f"📌 [DEBUG] DB에 정상적으로 저장되었나?: {db_check}")
+
+                return Response(TransactionSerializer(transaction_obj).data, status=status.HTTP_201_CREATED)
+
             except Exception as e:
-                print(f"⚠️ [ERROR] `refresh_from_db()` 실패: {e}")
-
-            # ✅ 저장 후 즉시 DB에서 다시 조회해보기
-            db_check = Transaction.objects.filter(id=transaction.id).exists()
-            print(f"📌 [DEBUG] DB에 정상적으로 저장되었나?: {db_check}")
-
-            return Response(TransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
+                print(f"⚠️ [ERROR] 트랜잭션 저장 실패: {e}")
+                return Response({"error": "트랜잭션 저장 중 오류 발생"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
