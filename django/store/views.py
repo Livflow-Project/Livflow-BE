@@ -39,13 +39,24 @@ class StoreListView(APIView):
                 target_month = datetime.now().month  # 🔥 거래 내역이 없으면 현재 연/월 사용
 
             # 🔹 Ledger (거래 내역)에서 해당 Store의 `target_year, target_month` 데이터 가져오기
-            transactions = Transaction.objects.using('default').filter(
-                store=store,
-                date__year=target_year,
-                date__month=target_month
+            # 🔹 수입(income) 상위 5개 조회
+            income_transactions = Transaction.objects.using('default').filter(
+                store=store, transaction_type="income",
+                date__year=target_year, date__month=target_month
             ).values("transaction_type", "category__name").annotate(
                 total=Sum("amount")
-            ).order_by("-total")[:3]  # 🔥 수입/지출 각각 상위 3개 항목만 반환
+            ).order_by("-total")[:5]  # ✅ 상위 5개 가져오기
+
+            # 🔹 지출(expense) 상위 5개 조회
+            expense_transactions = Transaction.objects.using('default').filter(
+                store=store, transaction_type="expense",
+                date__year=target_year, date__month=target_month
+            ).values("transaction_type", "category__name").annotate(
+                total=Sum("amount")
+            ).order_by("-total")[:5]  # ✅ 상위 5개 가져오기
+
+            # 🔹 두 리스트 합치기
+            transactions = list(income_transactions) + list(expense_transactions)  # 🔥 수입/지출 각각 상위 3개 항목만 반환
 
             # 🔹 거래 내역을 `chart` 데이터로 변환
             chart_data = [
