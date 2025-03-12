@@ -19,7 +19,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     recipe_name = serializers.CharField(source="name", allow_blank=False)  # ✅ 필수 값 (빈 문자열 X)
     recipe_cost = serializers.DecimalField(source="sales_price_per_item", max_digits=10, decimal_places=2, required=False)  # ✅ 선택 값
     recipe_img = serializers.ImageField(required=False)  # ✅ 선택 값
-    ingredients = RecipeItemSerializer(many=True, write_only=True, required=False)  # ✅ 선택 값 (배열)
+    ingredients = RecipeItemSerializer(many=True, required=False)  # ✅ 선택 값 (배열)
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch", required=False)  # ✅ 선택 값
     total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -126,7 +126,18 @@ class RecipeSerializer(serializers.ModelSerializer):
         return getattr(obj, "production_cost", 0)
 
     def to_representation(self, instance):
-        """🚀 응답 데이터에서 `recipe_cost`가 `None`이면 기본값을 `0`으로 설정"""
+        """🚀 응답 데이터에서 `ingredients` 배열을 포함"""
         data = super().to_representation(instance)
         data["recipe_cost"] = data["recipe_cost"] if data["recipe_cost"] is not None else 0  # ✅ None → 0 변환
+
+        # ✅ `ingredients` 필드 추가
+        ingredients = RecipeItem.objects.filter(recipe=instance)
+        data["ingredients"] = [
+            {
+                "ingredient_id": str(item.ingredient.id),
+                "required_amount": item.quantity_used
+            }
+            for item in ingredients
+        ]
+
         return data
