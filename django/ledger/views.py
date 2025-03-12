@@ -311,17 +311,28 @@ class LedgerCalendarView(APIView):
 
             days_list = [{"day": d, **summary} for d, summary in day_summary.items()]
 
-            category_summary = transactions.values("transaction_type", "category__name").annotate(
+            income_summary = transactions.filter(transaction_type="income").values("category__name").annotate(
+                total=Sum("amount")
+            ).order_by("-total")[:5]
+
+            expense_summary = transactions.filter(transaction_type="expense").values("category__name").annotate(
                 total=Sum("amount")
             ).order_by("-total")[:5]
 
             category_data = [
                 {
-                    "type": c["transaction_type"],
+                    "type": "income",
                     "category": c["category__name"] if c["category__name"] else "미분류",
-                    "cost": float(c["total"])
+                    "total": float(c["total"])
                 }
-                for c in category_summary
+                for c in income_summary
+            ] + [
+                {
+                    "type": "expense",
+                    "category": c["category__name"] if c["category__name"] else "미분류",
+                    "total": float(c["total"])
+                }
+                for c in expense_summary
             ]
 
             response_data = {
