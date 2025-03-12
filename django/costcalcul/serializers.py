@@ -16,13 +16,14 @@ logger = logging.getLogger(__name__)
 
 # ✅ 레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
-    recipe_name = serializers.CharField(source="name")
+    recipe_name = serializers.CharField(source="name", allow_blank=False)  # ✅ 필수 값 (빈 문자열 X)
     recipe_cost = serializers.DecimalField(source="sales_price_per_item", max_digits=10, decimal_places=2, required=False)  # ✅ 선택 값
-    recipe_img = serializers.ImageField(required=False)
-    ingredients = RecipeItemSerializer(many=True, write_only=True, required=False)  # ✅ 선택 값
+    recipe_img = serializers.ImageField(required=False)  # ✅ 선택 값
+    ingredients = RecipeItemSerializer(many=True, write_only=True, required=False)  # ✅ 선택 값 (배열)
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch", required=False)  # ✅ 선택 값
     total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
 
     class Meta:
         model = Recipe

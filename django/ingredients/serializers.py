@@ -9,7 +9,7 @@ class IngredientSerializer(serializers.ModelSerializer):
     ingredient_cost = serializers.DecimalField(source="purchase_price", max_digits=10, decimal_places=2)
     capacity = serializers.DecimalField(source="purchase_quantity", max_digits=10, decimal_places=2)
     shop = serializers.CharField(source="vendor", required=False, allow_null=True)
-    ingredient_detail = serializers.CharField(source="notes", required=False, allow_null=True)
+    ingredient_detail = serializers.CharField(source="notes", required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = Ingredient
