@@ -319,7 +319,7 @@ class LedgerCalendarView(APIView):
                 {
                     "type": c["transaction_type"],
                     "category": c["category__name"] if c["category__name"] else "미분류",
-                    "total": float(c["total"])
+                    "cost": float(c["total"])
                 }
                 for c in category_summary
             ]
