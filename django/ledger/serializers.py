@@ -21,11 +21,11 @@ class TransactionSerializer(serializers.ModelSerializer):
     )  # ✅ Decimal → float 변환
     type = serializers.CharField(source="transaction_type")  # ✅ "transaction_type" → "type"
     detail = serializers.CharField(source="description", required=False, allow_blank=True)  # ✅ "description" → "detail"
-    date = serializers.DateField() 
+
     
     class Meta:
         model = Transaction
-        fields = ["transaction_id", "store_id", "type", "category", "detail", "cost", "date"]  # ✅ "date" 제거
+        fields = ["transaction_id", "store_id", "type", "category", "detail", "cost"]  # ✅ "date" 제거
         read_only_fields = ["transaction_id"]
         
     def validate_category(self, value):
