@@ -113,35 +113,40 @@ class StoreRecipeDetailView(APIView):
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
-        if serializer.is_valid():
-            recipe = serializer.save()
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # ✅ 유효성 검사 실패 시 응답 추가
 
-            # ✅ ingredients가 있으면 업데이트, 없으면 기존 값 유지
-            ingredients = request.data.get("ingredients", None)
+        recipe = serializer.save()
 
-            # ✅ ingredients가 문자열이면 리스트로 변환
-            if isinstance(ingredients, str):
-                ingredients = [ingredients]  
+        # ✅ ingredients가 있으면 업데이트, 없으면 기존 값 유지
+        ingredients = request.data.get("ingredients", None)  # ✅ if 블록 안으로 이동
 
-            if isinstance(ingredients, list):  # ✅ 리스트일 때만 실행
-                RecipeItem.objects.filter(recipe=recipe).delete()
+        # ✅ ingredients가 문자열이면 리스트로 변환
+        if isinstance(ingredients, str):
+            ingredients = [ingredients]  
 
-                for ingredient_data in ingredients:
-                    if isinstance(ingredient_data, str):  
-                        ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}  # 🔥 기본값 설정
+        if isinstance(ingredients, list):  # ✅ 리스트일 때만 실행
+            RecipeItem.objects.filter(recipe=recipe).delete()
 
-                    if not isinstance(ingredient_data, dict):
-                        return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            for ingredient_data in ingredients:
+                if isinstance(ingredient_data, str):  
+                    ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}  # 🔥 기본값 설정
 
-                    ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
-                    RecipeItem.objects.create(
-                        recipe=recipe,
-                        ingredient=ingredient,
-                        quantity_used=ingredient_data.get("required_amount", 0),  # ✅ 기본값 설정
-                    )
+                if not isinstance(ingredient_data, dict):
+                    return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-            elif ingredients is not None:  # 리스트나 문자열이 아닐 경우 에러 반환
-                return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+                ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
+                RecipeItem.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity_used=ingredient_data.get("required_amount", 0),  # ✅ 기본값 설정
+                )
+
+        elif ingredients is not None:  # 리스트나 문자열이 아닐 경우 에러 반환
+            return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)  # ✅ 정상 응답 반환
+
 
 
 
