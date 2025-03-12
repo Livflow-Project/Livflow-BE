@@ -25,7 +25,7 @@ class StoreRecipeListView(APIView):
                 "recipe_id": str(recipe.id),  # ✅ UUID 문자열 변환
                 "recipe_name": recipe.name,
                 "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
-                "recipe_img": recipe.recipe_img if recipe.recipe_img else None,
+                "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
                 "is_favorites": False,  # ✅ 기본값 설정 (프론트엔드 요구사항 반영)
             }
             for recipe in recipes
