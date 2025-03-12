@@ -130,14 +130,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         data["recipe_cost"] = data["recipe_cost"] if data["recipe_cost"] is not None else 0  # ✅ None → 0 변환
 
-        # ✅ `ingredients` 필드 추가
-        ingredients = RecipeItem.objects.filter(recipe=instance)
+        # ✅ `ingredients` 필드 추가 (모델 객체를 가져오도록 수정)
+        recipe_items = RecipeItem.objects.filter(recipe=instance)  # 🔥 모델 객체 가져오기
+
         data["ingredients"] = [
             {
                 "ingredient_id": str(item.ingredient.id),
                 "required_amount": item.quantity_used
             }
-            for item in ingredients
+            for item in recipe_items  # 🔥 모델 인스턴스를 사용하도록 수정
         ]
 
         return data
+
