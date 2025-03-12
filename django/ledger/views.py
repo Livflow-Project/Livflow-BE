@@ -71,14 +71,22 @@ class LedgerTransactionListCreateView(APIView):
         serializer = TransactionSerializer(data=data, context={"request": request})
         if serializer.is_valid():
             transaction = serializer.save()
-            
+
+            # ✅ DB에 즉시 반영 시도
+            try:
+                transaction.refresh_from_db()
+                print(f"📌 [DEBUG] `refresh_from_db()` 후 ID 확인: {transaction.id}, 날짜: {transaction.date}")
+            except Exception as e:
+                print(f"⚠️ [ERROR] `refresh_from_db()` 실패: {e}")
+
             # ✅ 저장 후 즉시 DB에서 다시 조회해보기
             db_check = Transaction.objects.filter(id=transaction.id).exists()
             print(f"📌 [DEBUG] DB에 정상적으로 저장되었나?: {db_check}")
 
             return Response(TransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
