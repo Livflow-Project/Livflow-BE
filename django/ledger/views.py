@@ -211,6 +211,8 @@ class LedgerCalendarView(APIView):
         month = request.GET.get("month")
         day = request.GET.get("day")  # ✅ day 추가
 
+        print(f"📌 [DEBUG] 요청된 파라미터 - year: {year}, month: {month}, day: {day}")  # ✅ 입력값 확인
+
         if not year or not month:
             return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -230,6 +232,10 @@ class LedgerCalendarView(APIView):
             filters["date__day"] = day  # ✅ day 필터 추가
 
         transactions = Transaction.objects.filter(**filters)
+
+        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  # ✅ 실제 SQL 확인
+        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  # ✅ 데이터 개수 확인
+        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values('date', 'amount', 'transaction_type'))}")  # ✅ 실제 데이터 확인
 
         if day:
             # ✅ 특정 날짜의 거래 내역 응답
@@ -281,6 +287,5 @@ class LedgerCalendarView(APIView):
             }
 
         return Response(response_data, status=status.HTTP_200_OK)
-
 
 
