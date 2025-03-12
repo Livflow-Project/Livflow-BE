@@ -206,7 +206,8 @@ class LedgerCalendarView(APIView):
     )
 
     def get(self, request, store_id):
-        """ ✅ 특정 월의 거래 내역 조회 (day가 있으면 특정 날짜의 거래 내역 반환) """
+        print("🚀🚀🚀 GET 요청이 들어왔습니다!") 
+        
         year = request.GET.get("year")
         month = request.GET.get("month")
         day = request.GET.get("day")  # ✅ day 추가
