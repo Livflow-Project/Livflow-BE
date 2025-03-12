@@ -45,12 +45,18 @@ class TransactionSerializer(serializers.ModelSerializer):
         category = self.validate_category(category_name)  # ✅ ForeignKey 변환
 
         date_data = self.context["request"].data.get("date", {})
+        
+            # ✅ 날짜 디버깅 추가
+        print(f"📌 [DEBUG] 받은 date 데이터: {date_data}")
+        
         try:
             transaction_date = datetime(
                 year=date_data["year"], month=date_data["month"], day=date_data["day"]
             ).date()  # ✅ `datetime` → `date` 변환
         except KeyError:
             raise ValidationError({"date": "year, month, day 값을 포함해야 합니다."})
+        
+        print(f"📌 [DEBUG] 변환된 transaction_date: {transaction_date}")
 
         # ✅ `request.user`를 사용해 현재 로그인한 사용자 자동 저장
         transaction = Transaction.objects.create(
@@ -62,6 +68,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             date=transaction_date,
             description=validated_data.get("description", ""),
         )
+
+        print(f"📌 [DEBUG] 저장된 Transaction ID: {transaction.id}, 날짜: {transaction.date}")
 
         return transaction
 
