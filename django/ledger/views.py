@@ -42,7 +42,7 @@ class LedgerTransactionListCreateView(APIView):
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         # ✅ 거래 내역 필터링
-        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month)
+        transactions = Transaction.objects.using('default').filter(store=store, date__year=year, date__month=month)
         if day:
             transactions = transactions.filter(date__day=day)
 
