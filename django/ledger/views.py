@@ -323,14 +323,14 @@ class LedgerCalendarView(APIView):
                 {
                     "type": "income",
                     "category": c["category__name"] if c["category__name"] else "미분류",
-                    "total": float(c["total"])
+                    "cost": float(c["total"])
                 }
                 for c in income_summary
             ] + [
                 {
                     "type": "expense",
                     "category": c["category__name"] if c["category__name"] else "미분류",
-                    "total": float(c["total"])
+                    "cost": float(c["total"])
                 }
                 for c in expense_summary
             ]
