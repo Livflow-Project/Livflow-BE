@@ -10,7 +10,7 @@ class Ingredient(models.Model):
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2)  # ✅ ingredient_cost
     purchase_quantity = models.DecimalField(max_digits=10, decimal_places=2)  # ✅ capacity
     unit = models.CharField(max_length=2, choices=[
-        ('mg', 'Milligram'),
+        ('g', 'gram'),
         ('ml', 'Milliliter'),
         ('ea', 'Each'),
     ])
