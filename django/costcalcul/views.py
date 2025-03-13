@@ -109,44 +109,62 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """ 특정 레시피 수정 """
+        """ 특정 레시피 수정 (재고 반영 포함) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # ✅ 유효성 검사 실패 시 응답 추가
 
-        recipe = serializer.save()
+        with transaction.atomic():  # ✅ 트랜잭션 적용
+            # ✅ 기존 재료 정보 가져오기
+            old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
 
-        # ✅ ingredients가 있으면 업데이트, 없으면 기존 값 유지
-        ingredients = request.data.get("ingredients", None)
+            # ✅ 기존 재고 복구
+            for item in old_recipe_items:
+                inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
+                if inventory:
+                    inventory.remaining_stock += item.quantity_used  # ✅ 기존 사용량 복구
+                    inventory.save()
 
-        # ✅ ingredients가 문자열이면 리스트로 변환
-        if isinstance(ingredients, str):
-            ingredients = [ingredients]  
+            # ✅ 기존 재료 삭제
+            old_recipe_items.delete()
 
-        if isinstance(ingredients, list):  # ✅ 리스트일 때만 실행
-            RecipeItem.objects.filter(recipe=recipe).delete()
+            # ✅ 새로운 재료 추가 + 재고 차감
+            ingredients = request.data.get("ingredients", [])
+            
+            if isinstance(ingredients, str):
+                ingredients = [ingredients]  # ✅ 문자열이면 리스트로 변환
 
-            for ingredient_data in ingredients:
-                if isinstance(ingredient_data, str):  
-                    ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}  # 🔥 기본값 설정
+            if isinstance(ingredients, list):  # ✅ 리스트일 때만 실행
+                for ingredient_data in ingredients:
+                    if isinstance(ingredient_data, str):  
+                        ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}  # 🔥 기본값 설정
 
-                if not isinstance(ingredient_data, dict):
-                    return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+                    if not isinstance(ingredient_data, dict):
+                        return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-                ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
-                RecipeItem.objects.create(
-                    recipe=recipe,
-                    ingredient=ingredient,
-                    quantity_used=ingredient_data.get("required_amount", 0),  # ✅ 기본값 설정
-                )
+                    ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
+                    required_amount = ingredient_data.get("required_amount", 0)
 
-        elif ingredients is not None:  # 리스트나 문자열이 아닐 경우 에러 반환
-            return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+                    inventory = Inventory.objects.filter(ingredient=ingredient).first()
+                    if inventory:
+                        if inventory.remaining_stock < required_amount:
+                            return Response({"error": f"{ingredient.name}의 재고가 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
+                        inventory.remaining_stock -= required_amount  # ✅ 새로운 재료 차감
+                        inventory.save()
 
-        # ✅ ingredients가 `None`이거나 빈배열일 경우에도 정상적으로 응답을 반환하도록 함
+                    RecipeItem.objects.create(
+                        recipe=recipe,
+                        ingredient=ingredient,
+                        quantity_used=required_amount,
+                    )
+
+            elif ingredients is not None:  # 리스트나 문자열이 아닐 경우 에러 반환
+                return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 
