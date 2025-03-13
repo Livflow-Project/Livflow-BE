@@ -110,6 +110,7 @@ class StoreRecipeDetailView(APIView):
         responses={200: "레시피 수정 성공", 400: "유효성 검사 실패", 404: "레시피를 찾을 수 없음"}
     )
 
+
     def put(self, request, store_id, recipe_id):
         """ 특정 레시피 수정 (재고 반영 포함) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
@@ -119,58 +120,59 @@ class StoreRecipeDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():  # ✅ 트랜잭션 적용
-            # ✅ 기존 재료 정보 가져오기
             old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
 
-            # ✅ 기존 재고 복구 (Decimal 변환 추가)
+            print("\n=== [재고 복구 시작] ===")
             for item in old_recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory:
-                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal 변환
-                    inventory.remaining_stock += item.quantity_used  # ✅ 기존 사용량 복구
+                    print(f"📌 기존 재고 복구 전: {item.ingredient.name} -> {inventory.remaining_stock}")
+                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
+                    inventory.remaining_stock += item.quantity_used  
                     inventory.save()
+                    print(f"✅ 복구 완료: {item.ingredient.name} -> {inventory.remaining_stock}")
 
-            # ✅ 기존 재료 삭제
             old_recipe_items.delete()
+            print("🗑 기존 RecipeItem 삭제 완료")
 
-            # ✅ 새로운 재료 추가 + 재고 차감
             ingredients = request.data.get("ingredients", [])
             
             if isinstance(ingredients, str):
-                ingredients = [ingredients]  # ✅ 문자열이면 리스트로 변환
+                ingredients = [ingredients]  
 
-            if isinstance(ingredients, list):  # ✅ 리스트일 때만 실행
+            if isinstance(ingredients, list):  
                 for ingredient_data in ingredients:
                     if isinstance(ingredient_data, str):  
-                        ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}  # 🔥 기본값 설정
+                        ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}
 
                     if not isinstance(ingredient_data, dict):
                         return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
                     ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
-                    required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))  # ✅ Decimal 변환
+                    required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
 
                     inventory = Inventory.objects.filter(ingredient=ingredient).first()
                     if inventory:
-                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal 변환
+                        print(f"📌 재고 차감 전: {ingredient.name} -> {inventory.remaining_stock}")
+                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
                         if inventory.remaining_stock < required_amount:
                             return Response({"error": f"{ingredient.name}의 재고가 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
-                        inventory.remaining_stock -= required_amount  # ✅ 새로운 재료 차감
+                        inventory.remaining_stock -= required_amount  
                         inventory.save()
+                        print(f"✅ 차감 완료: {ingredient.name} -> {inventory.remaining_stock}")
 
                     RecipeItem.objects.create(
                         recipe=recipe,
                         ingredient=ingredient,
                         quantity_used=required_amount,
                     )
+                    print(f"📝 RecipeItem 생성: {ingredient.name} -> {required_amount} 사용")
 
             elif ingredients is not None:
                 return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+        print("🎉 PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
 
 
     @swagger_auto_schema(
