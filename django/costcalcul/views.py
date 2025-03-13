@@ -9,6 +9,8 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from inventory.models import Inventory
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
+from decimal import Decimal
+
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
@@ -114,16 +116,17 @@ class StoreRecipeDetailView(APIView):
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # ✅ 유효성 검사 실패 시 응답 추가
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():  # ✅ 트랜잭션 적용
             # ✅ 기존 재료 정보 가져오기
             old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
 
-            # ✅ 기존 재고 복구
+            # ✅ 기존 재고 복구 (Decimal 변환 추가)
             for item in old_recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory:
+                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal 변환
                     inventory.remaining_stock += item.quantity_used  # ✅ 기존 사용량 복구
                     inventory.save()
 
@@ -145,10 +148,11 @@ class StoreRecipeDetailView(APIView):
                         return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
                     ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
-                    required_amount = ingredient_data.get("required_amount", 0)
+                    required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))  # ✅ Decimal 변환
 
                     inventory = Inventory.objects.filter(ingredient=ingredient).first()
                     if inventory:
+                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal 변환
                         if inventory.remaining_stock < required_amount:
                             return Response({"error": f"{ingredient.name}의 재고가 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
                         inventory.remaining_stock -= required_amount  # ✅ 새로운 재료 차감
@@ -160,7 +164,7 @@ class StoreRecipeDetailView(APIView):
                         quantity_used=required_amount,
                     )
 
-            elif ingredients is not None:  # 리스트나 문자열이 아닐 경우 에러 반환
+            elif ingredients is not None:
                 return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
