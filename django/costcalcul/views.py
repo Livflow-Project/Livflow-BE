@@ -111,8 +111,9 @@ class StoreRecipeDetailView(APIView):
     )
 
 
+
     def put(self, request, store_id, recipe_id):
-        """ 특정 레시피 수정 (재고 반영 포함) """
+        """ 특정 레시피 수정 (이전 사용량 복구 후 새로운 사용량 반영) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
@@ -128,15 +129,17 @@ class StoreRecipeDetailView(APIView):
                 if inventory:
                     print(f"📌 기존 재고 복구 전: {item.ingredient.name} -> {inventory.remaining_stock}")
                     inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
-                    inventory.remaining_stock += item.quantity_used  
+                    inventory.remaining_stock += item.quantity_used  # ✅ 기존 사용량 복구
                     inventory.save()
-                    print(f"✅ 복구 완료: {item.ingredient.name} -> {inventory.remaining_stock}")
+                    print(f"✅ 복구 완료: {item.ingredient.name} -> {inventory.remaining_stock} (+{item.quantity_used})")
 
+            # ✅ 기존 RecipeItem 삭제 (복구 후 삭제)
             old_recipe_items.delete()
             print("🗑 기존 RecipeItem 삭제 완료")
 
+            # ✅ 새로운 재료 추가 (복구된 재고에서 차감)
             ingredients = request.data.get("ingredients", [])
-            
+
             if isinstance(ingredients, str):
                 ingredients = [ingredients]  
 
@@ -153,13 +156,12 @@ class StoreRecipeDetailView(APIView):
 
                     inventory = Inventory.objects.filter(ingredient=ingredient).first()
                     if inventory:
-                        print(f"📌 재고 차감 전: {ingredient.name} -> {inventory.remaining_stock}")
                         inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
                         if inventory.remaining_stock < required_amount:
                             return Response({"error": f"{ingredient.name}의 재고가 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
-                        inventory.remaining_stock -= required_amount  
+                        inventory.remaining_stock -= required_amount  # ✅ 새로운 사용량만 차감
                         inventory.save()
-                        print(f"✅ 차감 완료: {ingredient.name} -> {inventory.remaining_stock}")
+                        print(f"✅ 차감 완료: {ingredient.name} -> {inventory.remaining_stock} (-{required_amount})")
 
                     RecipeItem.objects.create(
                         recipe=recipe,
@@ -173,6 +175,7 @@ class StoreRecipeDetailView(APIView):
 
         print("🎉 PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
     @swagger_auto_schema(
