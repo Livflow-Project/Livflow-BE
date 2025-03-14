@@ -28,7 +28,7 @@ class StoreRecipeListView(APIView):
                 "recipe_name": recipe.name,
                 "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
                 "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
-                "is_favorites": False,  # ✅ 기본값 설정 (프론트엔드 요구사항 반영)
+                "is_favorites": recipe.is_favorites,  # ✅ 기본값 설정 (프론트엔드 요구사항 반영)
             }
             for recipe in recipes
         ]
@@ -41,14 +41,13 @@ class StoreRecipeListView(APIView):
     )
 
     def post(self, request, store_id):
+        """ 새로운 레시피 추가 (is_favorites 값을 요청받아 저장) """
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
-                recipe = serializer.save(store_id=store_id)  # ✅ 원가 계산은 `serializer.create()`에서 실행됨
-
+                recipe = serializer.save(store_id=store_id, is_favorites=request.data.get("is_favorites", False))  
                 print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
-                # ✅ 응답 데이터 생성 (DB에서 가져온 최신 값 사용)
                 updated_recipe = Recipe.objects.get(id=recipe.id)
 
                 response_data = {
@@ -56,10 +55,10 @@ class StoreRecipeListView(APIView):
                     "recipe_name": updated_recipe.name,
                     "recipe_cost": updated_recipe.sales_price_per_item,
                     "recipe_img": updated_recipe.recipe_img.url if updated_recipe.recipe_img else None,
-                    "is_favorites": updated_recipe.is_favorites,
+                    "is_favorites": updated_recipe.is_favorites,  # ✅ 요청받은 값 반영
                     "production_quantity": updated_recipe.production_quantity_per_batch,
-                    "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),  # ✅ 최신 DB 값 사용
-                    "production_cost": float(updated_recipe.production_cost),  # ✅ 최신 DB 값 사용
+                    "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),
+                    "production_cost": float(updated_recipe.production_cost),
                 }
 
                 print(f"📌 Final API Response: {response_data}")
@@ -97,7 +96,7 @@ class StoreRecipeDetailView(APIView):
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
             "recipe_img": "americano.jpg",  # ✅ 고정값 설정
-            "is_favorites": True,  # ✅ 항상 true로 설정
+            "is_favorites": recipe.is_favorites,  # ✅ 항상 true로 설정
             "ingredients": ingredients_data,  # ✅ 필요한 필드만 유지
             "production_quantity": recipe.production_quantity_per_batch,
         }
@@ -113,68 +112,46 @@ class StoreRecipeDetailView(APIView):
 
 
     def put(self, request, store_id, recipe_id):
-        """ 특정 레시피 수정 (이전 사용량 복구 후 새로운 사용량 반영) """
+        """ 특정 레시피 수정 (is_favorites 값을 요청받아 저장) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic():  # ✅ 트랜잭션 적용
-            old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
+        with transaction.atomic():
+            # ✅ is_favorites 값 업데이트
+            recipe.is_favorites = request.data.get("is_favorites", recipe.is_favorites)
+            recipe.save()
 
-            print("\n=== [재고 복구 시작] ===")
+            # ✅ 기존 로직 유지 (재고 복구 및 업데이트)
+            old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
             for item in old_recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory:
-                    print(f"📌 기존 재고 복구 전: {item.ingredient.name} -> {inventory.remaining_stock}")
-                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
-                    inventory.remaining_stock += item.quantity_used  # ✅ 기존 사용량 복구
+                    inventory.remaining_stock += item.quantity_used
                     inventory.save()
-                    print(f"✅ 복구 완료: {item.ingredient.name} -> {inventory.remaining_stock} (+{item.quantity_used})")
-
-            # ✅ 기존 RecipeItem 삭제 (복구 후 삭제)
             old_recipe_items.delete()
-            print("🗑 기존 RecipeItem 삭제 완료")
 
-            # ✅ 새로운 재료 추가 (복구된 재고에서 차감)
             ingredients = request.data.get("ingredients", [])
-
-            if isinstance(ingredients, str):
-                ingredients = [ingredients]  
-
             if isinstance(ingredients, list):  
                 for ingredient_data in ingredients:
-                    if isinstance(ingredient_data, str):  
-                        ingredient_data = {"ingredient_id": ingredient_data, "required_amount": 0}
-
-                    if not isinstance(ingredient_data, dict):
-                        return Response({"error": "ingredients 리스트 내 객체가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
-
                     ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
                     required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
-
                     inventory = Inventory.objects.filter(ingredient=ingredient).first()
                     if inventory:
-                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
-                        if inventory.remaining_stock < required_amount:
-                            return Response({"error": f"{ingredient.name}의 재고가 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
-                        inventory.remaining_stock -= required_amount  # ✅ 새로운 사용량만 차감
+                        inventory.remaining_stock -= required_amount  
                         inventory.save()
-                        print(f"✅ 차감 완료: {ingredient.name} -> {inventory.remaining_stock} (-{required_amount})")
 
                     RecipeItem.objects.create(
                         recipe=recipe,
                         ingredient=ingredient,
                         quantity_used=required_amount,
                     )
-                    print(f"📝 RecipeItem 생성: {ingredient.name} -> {required_amount} 사용")
-
-            elif ingredients is not None:
-                return Response({"error": "ingredients는 리스트 또는 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         print("🎉 PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 
