@@ -27,7 +27,7 @@ class StoreRecipeListView(APIView):
                 "recipe_id": str(recipe.id),  # ✅ UUID 문자열 변환
                 "recipe_name": recipe.name,
                 "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
-                "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
+                "recipe_img": recipe.recipe_img.url if recipe.recipe_img and hasattr(recipe.recipe_img, 'url') else None, 
                 "is_favorites": recipe.is_favorites,  # ✅ 기본값 설정 (프론트엔드 요구사항 반영)
             }
             for recipe in recipes
@@ -54,7 +54,7 @@ class StoreRecipeListView(APIView):
                     "id": str(updated_recipe.id),
                     "recipe_name": updated_recipe.name,
                     "recipe_cost": updated_recipe.sales_price_per_item,
-                    "recipe_img": updated_recipe.recipe_img.url if updated_recipe.recipe_img else None,
+                    "recipe_img": recipe.recipe_img.url if recipe.recipe_img and hasattr(recipe.recipe_img, 'url') else None, 
                     "is_favorites": updated_recipe.is_favorites,  # ✅ 요청받은 값 반영
                     "production_quantity": updated_recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),
@@ -95,7 +95,7 @@ class StoreRecipeDetailView(APIView):
             "recipe_id": str(recipe.id),  # ✅ UUID 유지 (프론트에서 crypto.randomUUID()로 변경)
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
-            "recipe_img": "americano.jpg",  # ✅ 고정값 설정
+            "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None, 
             "is_favorites": recipe.is_favorites,  # ✅ 항상 true로 설정
             "ingredients": ingredients_data,  # ✅ 필요한 필드만 유지
             "production_quantity": recipe.production_quantity_per_batch,
@@ -109,10 +109,8 @@ class StoreRecipeDetailView(APIView):
         responses={200: "레시피 수정 성공", 400: "유효성 검사 실패", 404: "레시피를 찾을 수 없음"}
     )
 
-
-
     def put(self, request, store_id, recipe_id):
-        """ 특정 레시피 수정 (is_favorites 값을 요청받아 저장) """
+        """ 특정 레시피 수정 (is_favorites & recipe_img 업데이트) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
@@ -122,6 +120,10 @@ class StoreRecipeDetailView(APIView):
         with transaction.atomic():
             # ✅ is_favorites 값 업데이트
             recipe.is_favorites = request.data.get("is_favorites", recipe.is_favorites)
+            
+            # ✅ recipe_img 값 업데이트
+            recipe.recipe_img = request.data.get("recipe_img", recipe.recipe_img)
+            
             recipe.save()
 
             # ✅ 기존 로직 유지 (재고 복구 및 업데이트)
@@ -151,6 +153,7 @@ class StoreRecipeDetailView(APIView):
 
         print("🎉 PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 
