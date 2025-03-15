@@ -45,20 +45,29 @@ class StoreRecipeListView(APIView):
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
-                recipe = serializer.save(store_id=store_id, is_favorites=request.data.get("is_favorites", False))  
+                recipe = serializer.save(
+                    store_id=store_id,
+                    is_favorites=request.data.get("is_favorites", False)
+                )
                 print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
                 updated_recipe = Recipe.objects.get(id=recipe.id)
+
+                # ✅ ingredients 처리
+                ingredients = request.data.get("ingredients", [])
+                if not ingredients:  # 빈 배열이면 메시지 추가
+                    ingredients = [{"message": "등록된 재료가 없습니다."}]
 
                 response_data = {
                     "id": str(updated_recipe.id),
                     "recipe_name": updated_recipe.name,
                     "recipe_cost": updated_recipe.sales_price_per_item,
-                    "recipe_img": recipe.recipe_img.url if recipe.recipe_img and hasattr(recipe.recipe_img, 'url') else None, 
-                    "is_favorites": updated_recipe.is_favorites,  # ✅ 요청받은 값 반영
+                    "recipe_img": updated_recipe.recipe_img.url if updated_recipe.recipe_img else None,
+                    "is_favorites": updated_recipe.is_favorites,
                     "production_quantity": updated_recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),
                     "production_cost": float(updated_recipe.production_cost),
+                    "ingredients": ingredients,  # ✅ 빈 배열일 경우 메시지 포함
                 }
 
                 print(f"📌 Final API Response: {response_data}")
@@ -66,6 +75,7 @@ class StoreRecipeListView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # ✅ 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
@@ -110,7 +120,7 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """ 특정 레시피 수정 (is_favorites & recipe_img 업데이트) """
+        """ 특정 레시피 수정 (is_favorites & recipe_img 업데이트, 빈 ingredients 처리) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
@@ -118,16 +128,22 @@ class StoreRecipeDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # ✅ is_favorites 값 업데이트
+            # ✅ is_favorites & recipe_img 값 업데이트
             recipe.is_favorites = request.data.get("is_favorites", recipe.is_favorites)
-            
-            # ✅ recipe_img 값 업데이트
             recipe.recipe_img = request.data.get("recipe_img", recipe.recipe_img)
-            
             recipe.save()
 
-            # ✅ 기존 로직 유지 (재고 복구 및 업데이트)
+            # ✅ 기존 RecipeItem 목록 가져오기
             old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
+
+            # ✅ PUT 요청에서 ingredients가 빈 배열이면 기존 재료 유지
+            ingredients = request.data.get("ingredients", None)
+
+            if isinstance(ingredients, list) and len(ingredients) == 0:
+                print("⚠️ [INFO] 빈 배열이므로 기존 재료 유지")
+                return Response(serializer.data, status=status.HTTP_200_OK)  # ✅ 기존 값 유지 후 바로 응답
+
+            # ✅ 기존 RecipeItem 삭제 (재고 복구)
             for item in old_recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory:
@@ -135,14 +151,21 @@ class StoreRecipeDetailView(APIView):
                     inventory.save()
             old_recipe_items.delete()
 
-            ingredients = request.data.get("ingredients", [])
-            if isinstance(ingredients, list):  
+            # ✅ 새로운 재료 추가
+            if isinstance(ingredients, list):
                 for ingredient_data in ingredients:
-                    ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
+                    ingredient_id = ingredient_data.get("ingredient_id")
+
+                    if not ingredient_id:
+                        print("⚠️ [WARN] ingredient_id가 없음! 건너뜀")
+                        continue
+
+                    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
                     required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
                     inventory = Inventory.objects.filter(ingredient=ingredient).first()
+
                     if inventory:
-                        inventory.remaining_stock -= required_amount  
+                        inventory.remaining_stock -= required_amount
                         inventory.save()
 
                     RecipeItem.objects.create(
@@ -153,8 +176,6 @@ class StoreRecipeDetailView(APIView):
 
         print("🎉 PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 
 
 
