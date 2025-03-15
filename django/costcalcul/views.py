@@ -120,7 +120,7 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """ 특정 레시피 수정 (is_favorites & recipe_img 업데이트, 빈 ingredients 처리) """
+        """ 특정 레시피 수정 (is_favorites 값을 요청받아 저장) """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         serializer = RecipeSerializer(recipe, data=request.data, partial=True)
 
@@ -128,44 +128,31 @@ class StoreRecipeDetailView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # ✅ is_favorites & recipe_img 값 업데이트
+            # ✅ is_favorites 값 업데이트
             recipe.is_favorites = request.data.get("is_favorites", recipe.is_favorites)
-            recipe.recipe_img = request.data.get("recipe_img", recipe.recipe_img)
             recipe.save()
 
-            # ✅ 기존 RecipeItem 목록 가져오기
+            # ✅ 기존 재료 사용량을 복구
             old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
-
-            # ✅ PUT 요청에서 ingredients가 빈 배열이면 기존 재료 유지
-            ingredients = request.data.get("ingredients", None)
-
-            if isinstance(ingredients, list) and len(ingredients) == 0:
-                print("⚠️ [INFO] 빈 배열이므로 기존 재료 유지")
-                return Response(serializer.data, status=status.HTTP_200_OK)  # ✅ 기존 값 유지 후 바로 응답
-
-            # ✅ 기존 RecipeItem 삭제 (재고 복구)
             for item in old_recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory:
-                    inventory.remaining_stock += item.quantity_used
+                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
+                    inventory.remaining_stock += item.quantity_used  # ✅ Decimal 연산
                     inventory.save()
             old_recipe_items.delete()
 
-            # ✅ 새로운 재료 추가
-            if isinstance(ingredients, list):
+            # ✅ 새로운 재료 반영
+            ingredients = request.data.get("ingredients", [])
+            if isinstance(ingredients, list):  
                 for ingredient_data in ingredients:
-                    ingredient_id = ingredient_data.get("ingredient_id")
-
-                    if not ingredient_id:
-                        print("⚠️ [WARN] ingredient_id가 없음! 건너뜀")
-                        continue
-
-                    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+                    ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
                     required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
-                    inventory = Inventory.objects.filter(ingredient=ingredient).first()
 
+                    inventory = Inventory.objects.filter(ingredient=ingredient).first()
                     if inventory:
-                        inventory.remaining_stock -= required_amount
+                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
+                        inventory.remaining_stock -= required_amount  # ✅ Decimal 연산
                         inventory.save()
 
                     RecipeItem.objects.create(
@@ -176,6 +163,7 @@ class StoreRecipeDetailView(APIView):
 
         print("🎉 PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 
@@ -194,7 +182,8 @@ class StoreRecipeDetailView(APIView):
             for item in recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()  # ✅ 존재 여부 체크
                 if inventory:
-                    inventory.remaining_stock += item.quantity_used  # ✅ 사용량 복구
+                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # float → Decimal 변환
+                    inventory.remaining_stock += item.quantity_used  # ✅ Decimal + Decimal 연산 가능
                     inventory.save()
 
             recipe_items.delete()  # ✅ 사용한 RecipeItem 삭제
