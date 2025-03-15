@@ -47,7 +47,7 @@ class StoreRecipeListView(APIView):
             with transaction.atomic():
                 recipe = serializer.save(
                     store_id=store_id,
-                    is_favorites=request.data.get("is_favorites", False)
+                    is_favorites=str(request.data.get("is_favorites", "false")).lower() == "true"
                 )
                 print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
@@ -129,7 +129,7 @@ class StoreRecipeDetailView(APIView):
 
         with transaction.atomic():
             # ✅ is_favorites 값 업데이트
-            recipe.is_favorites = request.data.get("is_favorites", recipe.is_favorites)
+            recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
             recipe.save()
 
             # ✅ 기존 재료 사용량을 복구
