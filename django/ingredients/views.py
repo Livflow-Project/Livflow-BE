@@ -8,6 +8,7 @@ from inventory.models import Inventory
 from .serializers import IngredientSerializer
 from store.models import Store
 from drf_yasg.utils import swagger_auto_schema
+from decimal import Decimal
 
 class StoreIngredientView(APIView):
     """

@@ -2,7 +2,7 @@ from django.db import models
 from store.models import Store
 import os
 from uuid import uuid4
-from decimal import Decimal
+from  import Decimal
 
 
 def recipe_image_upload_path(instance, filename):
