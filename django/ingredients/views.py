@@ -105,13 +105,18 @@ class IngredientDetailView(APIView):
 
         if serializer.is_valid():
             # 1️⃣ 기존 original_stock 가져오기
-            old_original_stock = ingredient.purchase_quantity  
+            old_original_stock = Decimal(str(ingredient.purchase_quantity))  
 
-            # 2️⃣ 새로운 original_stock 값 가져오기
-            new_original_stock = Decimal(str(request.data.get("capacity", old_original_stock)))  # 🔥 Decimal 변환
+            # 2️⃣ 새로운 original_stock 값 가져오기 (None 체크)
+            new_original_stock = request.data.get("capacity")
+
+            if new_original_stock is not None:
+                new_original_stock = Decimal(str(new_original_stock))
+            else:
+                new_original_stock = old_original_stock  # 값이 없으면 기존 값 유지
 
             # 3️⃣ 변경된 차이 계산
-            difference = new_original_stock - Decimal(str(old_original_stock))  # ✅ Decimal끼리 연산
+            difference = new_original_stock - old_original_stock  
 
             print(f"📌 기존 original_stock: {old_original_stock}, 새로운 original_stock: {new_original_stock}, 차이: {difference}")
 
@@ -120,8 +125,8 @@ class IngredientDetailView(APIView):
             if inventory and difference > 0:
                 print(f"🔄 기존 remaining_stock: {inventory.remaining_stock}, 추가될 양: {difference}")
 
-                inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
-                inventory.remaining_stock += difference  # ✅ Decimal끼리 연산
+                inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
+                inventory.remaining_stock += difference  
                 inventory.save()
 
                 print(f"✅ 업데이트된 remaining_stock: {inventory.remaining_stock}")
@@ -131,6 +136,7 @@ class IngredientDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
