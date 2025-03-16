@@ -107,7 +107,8 @@ class IngredientDetailView(APIView):
             # 1️⃣ 기존 original_stock 가져오기
             old_original_stock = Decimal(str(ingredient.purchase_quantity))  
 
-            # 2️⃣ 새로운 original_stock 값 가져오기 (None 체크)
+            # 2️⃣ PUT 요청에서 들어온 데이터 확인
+            print(f"🔍 request.data: {request.data}")  # <<<< 🔥 여기에 추가!
             new_original_stock = request.data.get("capacity")
 
             if new_original_stock is not None:
