@@ -9,6 +9,7 @@ from .serializers import IngredientSerializer
 from store.models import Store
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
+from costcalcul.models import RecipeItem
 
 class StoreIngredientView(APIView):
     """
@@ -138,10 +139,6 @@ class IngredientDetailView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
     @swagger_auto_schema(
         operation_summary="특정 재료 삭제",
         responses={204: "재료 삭제 성공", 404: "재료를 찾을 수 없음"}
@@ -152,3 +149,18 @@ class IngredientDetailView(APIView):
         ingredient = get_object_or_404(Ingredient, id=ingredient_id, store_id=store_id)
         ingredient.delete()
         return Response({"message": "재료가 삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
+    
+class IngredientUsagesView(APIView):
+    """
+    특정 재료를 사용하는 레시피(메뉴) 목록 조회 API
+    """
+
+    def get(self, request, store_id, ingredient_id):
+        """특정 재료를 사용 중인 레시피 리스트 반환"""
+        # ✅ 해당 재료를 사용하는 RecipeItem 조회
+        recipe_items = RecipeItem.objects.filter(ingredient_id=ingredient_id, recipe__store_id=store_id)
+
+        # ✅ 레시피 이름 목록 반환
+        recipe_names = [item.recipe.name for item in recipe_items]
+
+        return Response(recipe_names, status=status.HTTP_200_OK)
