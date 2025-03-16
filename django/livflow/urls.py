@@ -40,7 +40,8 @@ urlpatterns = [
    path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),  # JSON 경로 추가
    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
+# ✅ 정적 파일 제공 (개발 환경)
 
-# 정적 파일 제공 추가
-if settings.DEBUG:  # 프로덕션 환경이 아니라면 Django가 직접 정적 파일 제공
+if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  

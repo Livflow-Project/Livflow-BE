@@ -62,7 +62,7 @@ class UseIngredientStockView(APIView):
         if inventory.remaining_stock < used_stock:
             return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ 남은 재고 차감
+        # ✅ 남은 재고 차감 (original_stock은 유지)
         inventory.remaining_stock -= used_stock
         inventory.save()
 
@@ -70,11 +70,13 @@ class UseIngredientStockView(APIView):
             {
                 "ingredient_id": inventory.ingredient.id,
                 "ingredient_name": inventory.ingredient.name,
-                "remaining_stock": inventory.remaining_stock,  # ✅ 업데이트된 재고 값 반환
+                "original_stock": inventory.ingredient.purchase_quantity,  # ✅ 올바르게 수정
+                "remaining_stock": inventory.remaining_stock,
                 "unit": inventory.ingredient.unit,
             },
             status=status.HTTP_200_OK,
         )
+
 
 
 # ✅ 레시피 삭제 시 재료 재고 복구
@@ -84,7 +86,6 @@ class DeleteRecipeView(APIView):
         operation_summary="레시피 삭제 및 재료 재고 복구",
         responses={204: "레시피 삭제 및 재고 복구 완료", 404: "레시피를 찾을 수 없음"}
     )    
-    
     def delete(self, request, store_id, recipe_id):
         """ 레시피 삭제 시 사용한 재료를 다시 재고로 복구 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
@@ -92,9 +93,13 @@ class DeleteRecipeView(APIView):
 
         with transaction.atomic():  # ✅ 트랜잭션 적용
             for item in recipe_items:
-                inventory_item = Inventory.objects.filter(store_id=store_id, ingredient_id=item.ingredient.id).first()
+                inventory_item = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory_item:
-                    inventory_item.remaining_stock += item.quantity_used  # ✅ 사용량 복구
+                    max_stock = inventory_item.ingredient.purchase_quantity  # ✅ original_stock 대체
+                    inventory_item.remaining_stock = min(
+                        inventory_item.remaining_stock + item.quantity_used,
+                        max_stock  # ✅ original_stock 초과 방지
+                    )
                     inventory_item.save()
 
             # ✅ 레시피 및 연결된 RecipeItem 삭제
@@ -102,3 +107,5 @@ class DeleteRecipeView(APIView):
             recipe.delete()
 
         return Response({"message": "레시피 삭제 및 재고 복구 완료"}, status=status.HTTP_204_NO_CONTENT)
+
+

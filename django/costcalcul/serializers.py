@@ -71,6 +71,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                     f"{ingredient.name} 재고가 부족합니다. (남은 재고: {inventory.remaining_stock})"
                 )
 
+
             inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal로 변환
             inventory.remaining_stock -= required_amount  # ✅ 같은 타입끼리 연산
             inventory.save()
