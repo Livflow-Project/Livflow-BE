@@ -113,18 +113,25 @@ class IngredientDetailView(APIView):
             # 3️⃣ 변경된 차이 계산
             difference = new_original_stock - Decimal(str(old_original_stock))  # ✅ Decimal끼리 연산
 
+            print(f"📌 기존 original_stock: {old_original_stock}, 새로운 original_stock: {new_original_stock}, 차이: {difference}")
+
             # 4️⃣ 재고 업데이트 (original_stock 증가량만큼 remaining_stock 추가)
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
             if inventory and difference > 0:
+                print(f"🔄 기존 remaining_stock: {inventory.remaining_stock}, 추가될 양: {difference}")
+
                 inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
                 inventory.remaining_stock += difference  # ✅ Decimal끼리 연산
                 inventory.save()
+
+                print(f"✅ 업데이트된 remaining_stock: {inventory.remaining_stock}")
 
             # 5️⃣ 재료 정보 업데이트 및 저장
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
