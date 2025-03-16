@@ -98,14 +98,32 @@ class IngredientDetailView(APIView):
     )
 
     def put(self, request, store_id, ingredient_id):
-        """ 특정 재료 수정 """
+        """ 특정 재료 수정 (original_stock 변경 시 remaining_stock 업데이트 포함) """
         ingredient = get_object_or_404(Ingredient, id=ingredient_id, store_id=store_id)
         serializer = IngredientSerializer(ingredient, data=request.data, partial=True)
 
         if serializer.is_valid():
+            # 1️⃣ 기존 original_stock 가져오기
+            old_original_stock = ingredient.purchase_quantity  
+
+            # 2️⃣ 새로운 original_stock 값 가져오기
+            new_original_stock = request.data.get("capacity", old_original_stock)
+
+            # 3️⃣ 변경된 차이 계산
+            difference = new_original_stock - old_original_stock  
+
+            # 4️⃣ 재고 업데이트 (original_stock 증가량만큼 remaining_stock 추가)
+            inventory = Inventory.objects.filter(ingredient=ingredient).first()
+            if inventory and difference > 0:
+                inventory.remaining_stock += difference  
+                inventory.save()
+
+            # 5️⃣ 재료 정보 업데이트 및 저장
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     @swagger_auto_schema(
         operation_summary="특정 재료 삭제",
