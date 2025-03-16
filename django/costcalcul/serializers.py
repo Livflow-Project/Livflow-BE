@@ -66,10 +66,11 @@ class RecipeSerializer(serializers.ModelSerializer):
                 defaults={"remaining_stock": ingredient.purchase_quantity}
             )
 
-            if inventory.remaining_stock < required_amount:
+            if inventory.remaining_stock < required_amount and required_amount > inventory.ingredient.purchase_quantity:
                 raise serializers.ValidationError(
                     f"{ingredient.name} 재고가 부족합니다. (남은 재고: {inventory.remaining_stock})"
                 )
+
 
 
             inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # ✅ Decimal로 변환
