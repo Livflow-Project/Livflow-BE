@@ -50,27 +50,29 @@ class UseIngredientStockView(APIView):
         responses={200: "재고 사용 성공", 400: "유효성 검사 실패"}
     )
     
+
     def post(self, request, store_id, ingredient_id):
-        """ 특정 재료의 재고 사용 처리 """
         inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
         used_stock = request.data.get("used_stock")
 
-        # ✅ 사용량 검증
-        if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
-            return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+        print(f"🔍 사용량 요청: {used_stock}, 현재 남은 재고: {inventory.remaining_stock}")
 
         if inventory.remaining_stock < used_stock:
+            print(f"🚨 남은 재고 부족! 사용하려는 수량: {used_stock}, 현재 재고: {inventory.remaining_stock}")
             return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ 남은 재고 차감 (original_stock은 유지)
-        inventory.remaining_stock -= used_stock
+        # ✅ 중복 실행 여부 확인
+        print(f"✅ 재고 차감 전: {inventory.remaining_stock}, 차감할 수량: {used_stock}")
+
+        inventory.remaining_stock -= used_stock  
         inventory.save()
+
+        print(f"✅ 재고 차감 후: {inventory.remaining_stock}")
 
         return Response(
             {
                 "ingredient_id": inventory.ingredient.id,
                 "ingredient_name": inventory.ingredient.name,
-                "original_stock": inventory.ingredient.purchase_quantity,  # ✅ 올바르게 수정
                 "remaining_stock": inventory.remaining_stock,
                 "unit": inventory.ingredient.unit,
             },
