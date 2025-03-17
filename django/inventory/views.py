@@ -9,7 +9,6 @@ from costcalcul.models import Recipe, RecipeItem  # ✅ 레시피 모델 추가
 from .serializers import InventorySerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-import requests
 
 
 # ✅ 특정 상점의 재고 조회
@@ -53,31 +52,45 @@ class UseIngredientStockView(APIView):
     
     
     def post(self, request, store_id, ingredient_id):
+        """ 특정 재료의 재고 사용 처리 """
         inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
+
+        # 🔍 최신 상태로 강제 갱신 (임시 해결 방법)
+        inventory.refresh_from_db()
+
         used_stock = request.data.get("used_stock")
 
-        print(f"🔍 [요청 수신] ingredient_id: {ingredient_id}, 사용 요청: {used_stock}, 현재 재고: {inventory.remaining_stock}")
+        # ✅ 디버깅 로그 추가
+        print(f"🔍 [요청 수신] ingredient_id: {ingredient_id}, 사용 요청: {used_stock}")
+        print(f"📌 [재고 갱신 전] 현재 재고: {inventory.remaining_stock}")
 
+        # ✅ 사용량 검증
         if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
+            print("❌ [오류] 유효하지 않은 사용량 요청")
             return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
         if inventory.remaining_stock < used_stock:
+            print(f"❌ [오류] 재고 부족 (현재 재고: {inventory.remaining_stock}, 요청 사용량: {used_stock})")
             return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        print(f"✅ 재고 차감 전: {inventory.remaining_stock}, 차감할 수량: {used_stock}")
-
-        # 🚀 여기에서 재고 차감이 두 번 발생하는지 확인
+        # ✅ 남은 재고 차감 (original_stock은 유지)
         inventory.remaining_stock -= used_stock
-        print(f"✅ 재고 차감 후: {inventory.remaining_stock}")  
-
         inventory.save()
-        
-        return Response({
-            "ingredient_id": inventory.ingredient.id,
-            "ingredient_name": inventory.ingredient.name,
-            "remaining_stock": inventory.remaining_stock,
-            "unit": inventory.ingredient.unit,
-        }, status=status.HTTP_200_OK)
+
+        # ✅ 디버깅 로그 추가
+        print(f"✅ [재고 차감 완료] 차감 후 남은 재고: {inventory.remaining_stock}")
+
+        return Response(
+            {
+                "ingredient_id": inventory.ingredient.id,
+                "ingredient_name": inventory.ingredient.name,
+                "original_stock": inventory.ingredient.purchase_quantity,  
+                "remaining_stock": inventory.remaining_stock,
+                "unit": inventory.ingredient.unit,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 
 
