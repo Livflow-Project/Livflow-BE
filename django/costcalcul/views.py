@@ -43,7 +43,14 @@ class StoreRecipeListView(APIView):
 
     def post(self, request, store_id):
         print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
-        """ 새로운 레시피 추가 (is_favorites 값을 요청받아 저장) """
+
+        request_id = request.META.get('HTTP_X_REQUEST_ID', f"REQ-{now().strftime('%H%M%S%f')}")
+
+        # ✅ 디버깅: 요청이 몇 번 실행되는지 확인
+        import threading
+        thread_name = threading.current_thread().name
+        print(f"🛠️ [DEBUG] costcalcul post 호출 - THREAD: {thread_name}, REQUEST_ID: {request_id}")
+
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
@@ -57,8 +64,22 @@ class StoreRecipeListView(APIView):
 
                 # ✅ ingredients 처리
                 ingredients = request.data.get("ingredients", [])
-                if not ingredients:  # 빈 배열이면 메시지 추가
+                if not ingredients:  
                     ingredients = [{"message": "등록된 재료가 없습니다."}]
+
+                # ✅ 디버깅: 실제 프론트에서 보낸 재료 데이터 확인
+                print(f"📌 [DEBUG] 프론트에서 받은 재료 데이터: {ingredients}")
+
+                for ingredient_data in ingredients:
+                    ingredient_id = ingredient_data.get("ingredient_id")
+                    required_amount = ingredient_data.get("required_amount")
+
+                    # ✅ required_amount 값이 올바른지 확인
+                    print(f"🛠️ [DEBUG] ingredient_id: {ingredient_id}, required_amount: {required_amount}")
+
+                    if required_amount is None or not isinstance(required_amount, (int, float)) or required_amount <= 0:
+                        print(f"❌ [오류] 요청된 재료 사용량이 잘못됨! ingredient_id: {ingredient_id}, required_amount: {required_amount}")
+                        return Response({"error": "유효한 재료 사용량을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
                 response_data = {
                     "id": str(updated_recipe.id),
@@ -69,7 +90,7 @@ class StoreRecipeListView(APIView):
                     "production_quantity": updated_recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),
                     "production_cost": float(updated_recipe.production_cost),
-                    "ingredients": ingredients,  # ✅ 빈 배열일 경우 메시지 포함
+                    "ingredients": ingredients,  
                 }
 
                 print(f"📌 Final API Response: {response_data}")
@@ -77,6 +98,7 @@ class StoreRecipeListView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # ✅ 특정 레시피 상세 조회
