@@ -9,6 +9,8 @@ from costcalcul.models import Recipe, RecipeItem  # ✅ 레시피 모델 추가
 from .serializers import InventorySerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.db import transaction
+from django.db.models import F
 
 
 # ✅ 특정 상점의 재고 조회
@@ -36,8 +38,10 @@ class StoreInventoryView(APIView):
         return Response(inventory_data, status=status.HTTP_200_OK)
 
  
-class UseIngredientStockView(APIView):
 
+
+class UseIngredientStockView(APIView):
+    
     @swagger_auto_schema(
         operation_summary="특정 재료 재고 사용",
         request_body=openapi.Schema(
@@ -50,35 +54,33 @@ class UseIngredientStockView(APIView):
         responses={200: "재고 사용 성공", 400: "유효성 검사 실패"}
     )
     
-    
     def post(self, request, store_id, ingredient_id):
         """ 특정 재료의 재고 사용 처리 """
-        inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
-
-        # 🔍 최신 상태로 강제 갱신 (임시 해결 방법)
-        inventory.refresh_from_db()
-
         used_stock = request.data.get("used_stock")
-
-        # ✅ 디버깅 로그 추가
-        print(f"🔍 [요청 수신] ingredient_id: {ingredient_id}, 사용 요청: {used_stock}")
-        print(f"📌 [재고 갱신 전] 현재 재고: {inventory.remaining_stock}")
 
         # ✅ 사용량 검증
         if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
             print("❌ [오류] 유효하지 않은 사용량 요청")
             return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if inventory.remaining_stock < used_stock:
-            print(f"❌ [오류] 재고 부족 (현재 재고: {inventory.remaining_stock}, 요청 사용량: {used_stock})")
-            return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():  # ✅ 트랜잭션 적용 (동시 요청 방지)
+            inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
+            inventory.refresh_from_db()  # ✅ 최신 상태 반영
 
-        # ✅ 남은 재고 차감 (original_stock은 유지)
-        inventory.remaining_stock -= used_stock
-        inventory.save()
+            print(f"🔍 [요청 수신] ingredient_id: {ingredient_id}, 사용 요청: {used_stock}")
+            print(f"📌 [재고 갱신 전] 현재 재고: {inventory.remaining_stock}")
 
-        # ✅ 디버깅 로그 추가
-        print(f"✅ [재고 차감 완료] 차감 후 남은 재고: {inventory.remaining_stock}")
+            if inventory.remaining_stock < used_stock:
+                print(f"❌ [오류] 재고 부족 (현재 재고: {inventory.remaining_stock}, 요청 사용량: {used_stock})")
+                return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # ✅ `F()` 객체를 이용한 원자적 연산 (동시 요청 충돌 방지)
+            Inventory.objects.filter(id=inventory.id).update(remaining_stock=F('remaining_stock') - used_stock)
+
+            # ✅ 최신 재고 정보 다시 가져오기
+            inventory.refresh_from_db()
+
+            print(f"✅ [재고 차감 완료] 차감 후 남은 재고: {inventory.remaining_stock}")
 
         return Response(
             {
