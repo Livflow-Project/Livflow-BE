@@ -41,6 +41,7 @@ class StoreRecipeListView(APIView):
     )
 
     def post(self, request, store_id):
+        print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
         """ 새로운 레시피 추가 (is_favorites 값을 요청받아 저장) """
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():

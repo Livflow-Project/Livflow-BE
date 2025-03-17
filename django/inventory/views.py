@@ -9,6 +9,7 @@ from costcalcul.models import Recipe, RecipeItem  # ✅ 레시피 모델 추가
 from .serializers import InventorySerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import requests
 
 
 # ✅ 특정 상점의 재고 조회
@@ -37,7 +38,7 @@ class StoreInventoryView(APIView):
 
  
 class UseIngredientStockView(APIView):
-    
+
     @swagger_auto_schema(
         operation_summary="특정 재료 재고 사용",
         request_body=openapi.Schema(
@@ -50,8 +51,9 @@ class UseIngredientStockView(APIView):
         responses={200: "재고 사용 성공", 400: "유효성 검사 실패"}
     )
     
-
+    
     def post(self, request, store_id, ingredient_id):
+        print(f"🔍 [Inventory 사용 요청] ingredient_id: {ingredient_id}, 데이터: {request.data}")
         inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
         used_stock = request.data.get("used_stock")
 
