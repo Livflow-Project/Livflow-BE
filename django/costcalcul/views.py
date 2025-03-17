@@ -10,6 +10,7 @@ from inventory.models import Inventory
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
+from django.utils.timezone import now
 
 
 # ✅ 특정 상점의 모든 레시피 조회
@@ -128,6 +129,8 @@ class StoreRecipeDetailView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        print(f"\n🔍 [{now()}] [레시피 수정 요청] recipe_id: {recipe_id}, store_id: {store_id}")
+
         with transaction.atomic():
             # ✅ is_favorites 값 업데이트
             recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
@@ -138,9 +141,11 @@ class StoreRecipeDetailView(APIView):
             for item in old_recipe_items:
                 inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory:
+                    before_restore = inventory.remaining_stock
                     inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
                     inventory.remaining_stock += item.quantity_used  # ✅ Decimal 연산
                     inventory.save()
+                    print(f"✅ [{now()}] [재고 복구] ingredient_id: {item.ingredient.id}, 기존 재고: {before_restore}, 복구된 재고: {inventory.remaining_stock} (+{item.quantity_used})")
             old_recipe_items.delete()
 
             # ✅ 새로운 재료 반영
@@ -152,9 +157,11 @@ class StoreRecipeDetailView(APIView):
 
                     inventory = Inventory.objects.filter(ingredient=ingredient).first()
                     if inventory:
+                        before_deduction = inventory.remaining_stock
                         inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
                         inventory.remaining_stock -= required_amount  # ✅ Decimal 연산
                         inventory.save()
+                        print(f"✅ [{now()}] [재고 차감] ingredient_id: {ingredient.id}, 기존 재고: {before_deduction}, 차감 후 재고: {inventory.remaining_stock} (-{required_amount})")
 
                     RecipeItem.objects.create(
                         recipe=recipe,
@@ -162,7 +169,7 @@ class StoreRecipeDetailView(APIView):
                         quantity_used=required_amount,
                     )
 
-        print("🎉 PUT 요청 완료\n")
+        print(f"🎉 [{now()}] PUT 요청 완료\n")
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
