@@ -148,20 +148,12 @@ class StoreRecipeDetailView(APIView):
                     print(f"✅ [{now()}] [재고 복구] ingredient_id: {item.ingredient.id}, 기존 재고: {before_restore}, 복구된 재고: {inventory.remaining_stock} (+{item.quantity_used})")
             old_recipe_items.delete()
 
-            # ✅ 새로운 재료 반영
+            # ✅ 새로운 재료 반영 (remaining_stock 수정 제거)
             ingredients = request.data.get("ingredients", [])
             if isinstance(ingredients, list):  
                 for ingredient_data in ingredients:
                     ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
                     required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
-
-                    inventory = Inventory.objects.filter(ingredient=ingredient).first()
-                    if inventory:
-                        before_deduction = inventory.remaining_stock
-                        inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
-                        inventory.remaining_stock -= required_amount  # ✅ Decimal 연산
-                        inventory.save()
-                        print(f"✅ [{now()}] [재고 차감] ingredient_id: {ingredient.id}, 기존 재고: {before_deduction}, 차감 후 재고: {inventory.remaining_stock} (-{required_amount})")
 
                     RecipeItem.objects.create(
                         recipe=recipe,
