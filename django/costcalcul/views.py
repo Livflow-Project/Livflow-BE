@@ -136,19 +136,11 @@ class StoreRecipeDetailView(APIView):
             recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
             recipe.save()
 
-            # ✅ 기존 재료 사용량을 복구
+            # ✅ 기존 재료 삭제 (복구 로직 제거)
             old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
-            for item in old_recipe_items:
-                inventory = Inventory.objects.filter(ingredient=item.ingredient).first()
-                if inventory:
-                    before_restore = inventory.remaining_stock
-                    inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  # 🔥 float → Decimal 변환
-                    inventory.remaining_stock += item.quantity_used  # ✅ Decimal 연산
-                    inventory.save()
-                    print(f"✅ [{now()}] [재고 복구] ingredient_id: {item.ingredient.id}, 기존 재고: {before_restore}, 복구된 재고: {inventory.remaining_stock} (+{item.quantity_used})")
             old_recipe_items.delete()
 
-            # ✅ 새로운 재료 반영 (remaining_stock 수정 제거)
+            # ✅ 새로운 재료 반영 (remaining_stock 수정 X)
             ingredients = request.data.get("ingredients", [])
             if isinstance(ingredients, list):  
                 for ingredient_data in ingredients:
