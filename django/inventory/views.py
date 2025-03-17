@@ -56,29 +56,33 @@ class UseIngredientStockView(APIView):
     
     def post(self, request, store_id, ingredient_id):
         """ 특정 재료의 재고 사용 처리 """
-
         request_id = request.META.get('HTTP_X_REQUEST_ID', f"REQ-{now().strftime('%H%M%S%f')}")
         used_stock = request.data.get("used_stock")
 
         with transaction.atomic():
             inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
             inventory.refresh_from_db()  # ✅ 최신 상태 반영
+            before_stock = inventory.remaining_stock  # 🔥 기존 재고 상태 저장
 
             # ✅ 사용량 검증
             if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
                 return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if inventory.remaining_stock < used_stock:
-                print(f"❌ [오류] REQUEST_ID: {request_id}, 재고 부족 (현재 재고: {inventory.remaining_stock}, 요청 사용량: {used_stock})")
-                return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            # 🔍 최신 original_stock 반영하여 사용 가능 재고 계산
+            max_allowed_stock = inventory.ingredient.purchase_quantity  # 최신 original_stock 반영
 
-            # ✅ 차감 전후 상태 비교
-            before_stock = inventory.remaining_stock
+            # ✅ 총 사용 가능 재고 계산
+            total_available_stock = min(inventory.remaining_stock, max_allowed_stock)
+
+            if total_available_stock < used_stock:
+                print(f"❌ [오류] REQUEST_ID: {request_id}, 사용하려는 재고({used_stock})가 총 사용 가능 재고({total_available_stock})보다 큼")
+                return Response({"error": f"최대 사용 가능한 재고는 {total_available_stock}입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # ✅ 재고 차감 로직
             Inventory.objects.filter(id=inventory.id).update(remaining_stock=F('remaining_stock') - used_stock)
             inventory.refresh_from_db()  # ✅ 최신 상태 반영
             after_stock = inventory.remaining_stock
 
-            # ✅ 차감 후 재고 확인
             print(f"✅ [재고 차감 완료] REQUEST_ID: {request_id}, 차감 전: {before_stock}, 차감할 수량: {used_stock}, 차감 후: {after_stock}")
 
         return Response(
@@ -91,6 +95,7 @@ class UseIngredientStockView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
 
 
 # ✅ 레시피 삭제 시 재료 재고 복구
@@ -109,11 +114,14 @@ class DeleteRecipeView(APIView):
             for item in recipe_items:
                 inventory_item = Inventory.objects.filter(ingredient=item.ingredient).first()
                 if inventory_item:
-                    max_stock = inventory_item.ingredient.purchase_quantity  # ✅ original_stock 대체
-                    inventory_item.remaining_stock = min(
-                        inventory_item.remaining_stock + item.quantity_used,
-                        max_stock  # ✅ original_stock 초과 방지
-                    )
+                    max_stock = inventory_item.ingredient.purchase_quantity  # ✅ 최신 original_stock
+                    new_remaining_stock = inventory_item.remaining_stock + item.quantity_used
+
+                    # 🔥 만약 original_stock보다 남은 재고가 더 크다면 조정
+                    if new_remaining_stock > max_stock:
+                        new_remaining_stock = max_stock
+
+                    inventory_item.remaining_stock = new_remaining_stock
                     inventory_item.save()
 
             # ✅ 레시피 및 연결된 RecipeItem 삭제

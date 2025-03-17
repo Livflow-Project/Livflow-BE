@@ -85,7 +85,7 @@ class IngredientDetailView(APIView):
             "ingredient_id": str(ingredient.id),
             "ingredient_name": ingredient.name,
             "ingredient_cost": ingredient.purchase_price,
-            "capacity": inventory.remaining_stock,  # ✅ 현재 남은 재고
+            "capacity": ingredient.purchase_quantity, #구매용량
             "unit": ingredient.unit,
             "unit_cost": ingredient.unit_cost,
             "shop": ingredient.vendor if ingredient.vendor else None,
@@ -130,8 +130,9 @@ class IngredientDetailView(APIView):
 
                 # 🔥 **original_stock 감소 → remaining_stock 감소 (최소 0 유지)**
                 elif difference < 0:
-                    new_remaining_stock = max(inventory.remaining_stock + difference, 0)
-                    print(f"⚠️ 감소 적용 - 기존: {inventory.remaining_stock}, 변경 후: {new_remaining_stock}")
+                    already_used = old_original_stock - inventory.remaining_stock  # 사용된 재고
+                    new_remaining_stock = max(inventory.remaining_stock + difference, already_used)
+                    print(f"⚠️ 감소 적용 - 기존: {inventory.remaining_stock}, 사용된 재고: {already_used}, 변경 후: {new_remaining_stock}")
                     inventory.remaining_stock = new_remaining_stock
 
                 inventory.save()
