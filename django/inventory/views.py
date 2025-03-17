@@ -56,31 +56,37 @@ class UseIngredientStockView(APIView):
     
     def post(self, request, store_id, ingredient_id):
         """ 특정 재료의 재고 사용 처리 """
+
+        request_id = request.META.get('HTTP_X_REQUEST_ID', f"REQ-{now().strftime('%H%M%S%f')}")
         used_stock = request.data.get("used_stock")
 
-        # ✅ 사용량 검증
-        if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
-            print("❌ [오류] 유효하지 않은 사용량 요청")
-            return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+        # ✅ 디버깅: 요청 감지
+        print(f"\n🔍 [요청 수신] REQUEST_ID: {request_id}, ingredient_id: {ingredient_id}, 사용 요청: {used_stock}")
 
-        with transaction.atomic():  # ✅ 트랜잭션 적용 (동시 요청 방지)
+        with transaction.atomic():
             inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
             inventory.refresh_from_db()  # ✅ 최신 상태 반영
 
-            print(f"🔍 [요청 수신] ingredient_id: {ingredient_id}, 사용 요청: {used_stock}")
-            print(f"📌 [재고 갱신 전] 현재 재고: {inventory.remaining_stock}")
+            # ✅ 재고 상태 로그
+            print(f"📌 [재고 조회] REQUEST_ID: {request_id}, original_stock: {inventory.ingredient.purchase_quantity}, 현재 재고: {inventory.remaining_stock}")
+
+            # ✅ 사용량 검증
+            if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
+                print(f"❌ [오류] REQUEST_ID: {request_id}, 유효하지 않은 사용량 요청")
+                return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
             if inventory.remaining_stock < used_stock:
-                print(f"❌ [오류] 재고 부족 (현재 재고: {inventory.remaining_stock}, 요청 사용량: {used_stock})")
+                print(f"❌ [오류] REQUEST_ID: {request_id}, 재고 부족 (현재 재고: {inventory.remaining_stock}, 요청 사용량: {used_stock})")
                 return Response({"error": "남은 재고보다 많이 사용할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # ✅ `F()` 객체를 이용한 원자적 연산 (동시 요청 충돌 방지)
+            # ✅ 차감 전후 상태 비교
+            before_stock = inventory.remaining_stock
             Inventory.objects.filter(id=inventory.id).update(remaining_stock=F('remaining_stock') - used_stock)
+            inventory.refresh_from_db()  # ✅ 최신 상태 반영
+            after_stock = inventory.remaining_stock
 
-            # ✅ 최신 재고 정보 다시 가져오기
-            inventory.refresh_from_db()
-
-            print(f"✅ [재고 차감 완료] 차감 후 남은 재고: {inventory.remaining_stock}")
+            # ✅ 차감 후 재고 확인
+            print(f"✅ [재고 차감 완료] REQUEST_ID: {request_id}, 차감 전: {before_stock}, 차감할 수량: {used_stock}, 차감 후: {after_stock}")
 
         return Response(
             {
@@ -92,6 +98,7 @@ class UseIngredientStockView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
 
 
 
