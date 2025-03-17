@@ -60,24 +60,12 @@ class UseIngredientStockView(APIView):
         request_id = request.META.get('HTTP_X_REQUEST_ID', f"REQ-{now().strftime('%H%M%S%f')}")
         used_stock = request.data.get("used_stock")
 
-        # ✅ 디버깅: 요청 감지 (몇 번 실행되는지 확인)
-        print(f"\n🔍 [요청 수신] REQUEST_ID: {request_id}, ingredient_id: {ingredient_id}, 사용 요청: {used_stock}")
-
         with transaction.atomic():
             inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
             inventory.refresh_from_db()  # ✅ 최신 상태 반영
 
-            # ✅ 중복 호출 체크
-            print(f"📌 [재고 조회] REQUEST_ID: {request_id}, original_stock: {inventory.ingredient.purchase_quantity}, 현재 재고: {inventory.remaining_stock}")
-            
-            # ✅ inventory post 요청이 몇 번 호출되는지 추적
-            import threading
-            thread_name = threading.current_thread().name
-            print(f"🛠️ [DEBUG] inventory post 호출 - THREAD: {thread_name}")
-
             # ✅ 사용량 검증
             if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
-                print(f"❌ [오류] REQUEST_ID: {request_id}, 유효하지 않은 사용량 요청")
                 return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
             if inventory.remaining_stock < used_stock:
