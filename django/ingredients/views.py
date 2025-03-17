@@ -9,7 +9,7 @@ from .serializers import IngredientSerializer
 from store.models import Store
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
-from costcalcul.models import RecipeItem
+
 
 class StoreIngredientView(APIView):
     """
@@ -105,11 +105,7 @@ class IngredientDetailView(APIView):
         serializer = IngredientSerializer(ingredient, data=request.data, partial=True)
 
         if serializer.is_valid():
-            # 1️⃣ 기존 original_stock 가져오기
-            old_original_stock = Decimal(str(ingredient.purchase_quantity))  
-
-            # 2️⃣ PUT 요청에서 들어온 데이터 확인
-            print(f"🔍 request.data: {request.data}")  # <<<< 🔥 여기에 추가!
+            old_original_stock = Decimal(str(ingredient.purchase_quantity))  # 기존 original_stock
             new_original_stock = request.data.get("capacity")
 
             if new_original_stock is not None:
@@ -117,23 +113,30 @@ class IngredientDetailView(APIView):
             else:
                 new_original_stock = old_original_stock  # 값이 없으면 기존 값 유지
 
-            # 3️⃣ 변경된 차이 계산
-            difference = new_original_stock - old_original_stock  
-
+            difference = new_original_stock - old_original_stock  # 용량 변화량 계산
             print(f"📌 기존 original_stock: {old_original_stock}, 새로운 original_stock: {new_original_stock}, 차이: {difference}")
 
-            # 4️⃣ 재고 업데이트 (original_stock 증가량만큼 remaining_stock 추가)
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
-            if inventory and difference > 0:
-                print(f"🔄 기존 remaining_stock: {inventory.remaining_stock}, 추가될 양: {difference}")
 
-                inventory.remaining_stock = Decimal(str(inventory.remaining_stock))  
-                inventory.remaining_stock += difference  
+            if inventory:
+                print(f"🔄 기존 remaining_stock: {inventory.remaining_stock}, 변동 차이: {difference}")
+
+                inventory.remaining_stock = Decimal(str(inventory.remaining_stock))
+
+                # 🔥 **original_stock 증가 → remaining_stock 증가**
+                if difference > 0:
+                    inventory.remaining_stock += difference
+                    print(f"✅ 증가 적용 - 새로운 remaining_stock: {inventory.remaining_stock}")
+
+                # 🔥 **original_stock 감소 → remaining_stock 감소 (최소 0 유지)**
+                elif difference < 0:
+                    new_remaining_stock = max(inventory.remaining_stock + difference, 0)
+                    print(f"⚠️ 감소 적용 - 기존: {inventory.remaining_stock}, 변경 후: {new_remaining_stock}")
+                    inventory.remaining_stock = new_remaining_stock
+
                 inventory.save()
 
-                print(f"✅ 업데이트된 remaining_stock: {inventory.remaining_stock}")
-
-            # 5️⃣ 재료 정보 업데이트 및 저장
+            # ✅ 재료 정보 업데이트
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
