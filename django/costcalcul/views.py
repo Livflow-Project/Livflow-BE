@@ -44,13 +44,6 @@ class StoreRecipeListView(APIView):
     def post(self, request, store_id):
         print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
 
-        request_id = request.META.get('HTTP_X_REQUEST_ID', f"REQ-{now().strftime('%H%M%S%f')}")
-
-        # ✅ 디버깅: 요청이 몇 번 실행되는지 확인
-        import threading
-        thread_name = threading.current_thread().name
-        print(f"🛠️ [DEBUG] costcalcul post 호출 - THREAD: {thread_name}, REQUEST_ID: {request_id}")
-
         serializer = RecipeSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
@@ -62,24 +55,8 @@ class StoreRecipeListView(APIView):
 
                 updated_recipe = Recipe.objects.get(id=recipe.id)
 
-                # ✅ ingredients 처리
+                # ✅ 빈 배열일 경우 자동으로 처리
                 ingredients = request.data.get("ingredients", [])
-                if not ingredients:  
-                    ingredients = [{"message": "등록된 재료가 없습니다."}]
-
-                # ✅ 디버깅: 실제 프론트에서 보낸 재료 데이터 확인
-                print(f"📌 [DEBUG] 프론트에서 받은 재료 데이터: {ingredients}")
-
-                for ingredient_data in ingredients:
-                    ingredient_id = ingredient_data.get("ingredient_id")
-                    required_amount = ingredient_data.get("required_amount")
-
-                    # ✅ required_amount 값이 올바른지 확인
-                    print(f"🛠️ [DEBUG] ingredient_id: {ingredient_id}, required_amount: {required_amount}")
-
-                    if required_amount is None or not isinstance(required_amount, (int, float)) or required_amount <= 0:
-                        print(f"❌ [오류] 요청된 재료 사용량이 잘못됨! ingredient_id: {ingredient_id}, required_amount: {required_amount}")
-                        return Response({"error": "유효한 재료 사용량을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
 
                 response_data = {
                     "id": str(updated_recipe.id),
@@ -90,7 +67,7 @@ class StoreRecipeListView(APIView):
                     "production_quantity": updated_recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(updated_recipe.total_ingredient_cost),
                     "production_cost": float(updated_recipe.production_cost),
-                    "ingredients": ingredients,  
+                    "ingredients": ingredients,  # 자동으로 빈 배열이 들어감
                 }
 
                 print(f"📌 Final API Response: {response_data}")
@@ -151,16 +128,13 @@ class StoreRecipeDetailView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        print(f"\n🔍 [{now()}] [레시피 수정 요청] recipe_id: {recipe_id}, store_id: {store_id}")
-
         with transaction.atomic():
             # ✅ is_favorites 값 업데이트
             recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
             recipe.save()
 
             # ✅ 기존 재료 삭제 (복구 로직 제거)
-            old_recipe_items = RecipeItem.objects.filter(recipe=recipe)
-            old_recipe_items.delete()
+            RecipeItem.objects.filter(recipe=recipe).delete()
 
             # ✅ 새로운 재료 반영 (remaining_stock 수정 X)
             ingredients = request.data.get("ingredients", [])
@@ -175,8 +149,10 @@ class StoreRecipeDetailView(APIView):
                         quantity_used=required_amount,
                     )
 
-        print(f"🎉 [{now()}] PUT 요청 완료\n")
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # ✅ 최신 레시피 데이터 반환 (업데이트된 ingredients 포함)
+        updated_recipe = Recipe.objects.get(id=recipe.id)  
+        return Response(RecipeSerializer(updated_recipe).data, status=status.HTTP_200_OK)
+
 
 
 
