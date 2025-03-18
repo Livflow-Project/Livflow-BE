@@ -9,7 +9,7 @@ from .serializers import IngredientSerializer
 from store.models import Store
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
-
+from costcalcul.models import RecipeItem
 
 class StoreIngredientView(APIView):
     """
