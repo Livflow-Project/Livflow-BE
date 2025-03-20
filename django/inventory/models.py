@@ -1,9 +1,11 @@
 from django.db import models
 from ingredients.models import Ingredient
+from django.utils.timezone import now
 
 class Inventory(models.Model):
     ingredient = models.OneToOneField(Ingredient, on_delete=models.CASCADE, related_name="inventory")
     remaining_stock = models.FloatField(default=0)  
+    created_at = models.DateTimeField(default=now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)  
 
     def __str__(self):

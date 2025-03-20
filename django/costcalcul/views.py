@@ -22,7 +22,7 @@ class StoreRecipeListView(APIView):
         responses={200: "레시피 목록 반환"}
     )
     def get(self, request, store_id):
-        recipes = Recipe.objects.filter(store_id=store_id)
+        recipes = Recipe.objects.filter(store_id=store_id).order_by("created_at")
         recipe_data = [
             {
                 "recipe_id": str(recipe.id),  # ✅ UUID 문자열 변환

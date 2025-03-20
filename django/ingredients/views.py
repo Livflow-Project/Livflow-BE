@@ -23,7 +23,7 @@ class StoreIngredientView(APIView):
 
     def get(self, request, store_id):
         """ 특정 상점의 모든 재료 조회 (Ingredient 기준) """
-        ingredients = Ingredient.objects.filter(store_id=store_id)
+        ingredients = Ingredient.objects.filter(store_id=store_id).order_by("created_at")
         ingredient_data = [
             {
                 "ingredient_id": str(ingredient.id),

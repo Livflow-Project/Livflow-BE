@@ -24,7 +24,7 @@ class StoreInventoryView(APIView):
     
     def get(self, request, store_id):
         """ 특정 상점의 재고 목록 조회 """
-        inventories = Inventory.objects.filter(ingredient__store_id=store_id)
+        inventories = Inventory.objects.filter(ingredient__store_id=store_id).order_by("created_at")
         inventory_data = [
             {
                 "ingredient_id": str(inv.ingredient.id),

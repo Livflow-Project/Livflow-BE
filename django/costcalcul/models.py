@@ -3,7 +3,7 @@ from store.models import Store
 import os
 from uuid import uuid4
 from decimal import Decimal
-
+from django.utils.timezone import now
 
 def recipe_image_upload_path(instance, filename):
     """이미지를 저장할 경로 설정"""
@@ -21,9 +21,11 @@ class Recipe(models.Model):
     production_quantity_per_batch = models.IntegerField(default=1)
     recipe_img = models.ImageField(upload_to=recipe_image_upload_path, null=True, blank=True)  # ✅ 이미지 필드 추가
     is_favorites = models.BooleanField(default=False)
-    
     total_ingredient_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 총 재료비
     production_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 개당 원가
+    
+    created_at = models.DateTimeField(default=now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)    
     
     def __str__(self):
         return self.name

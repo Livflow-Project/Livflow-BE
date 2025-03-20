@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from store.models import Store  
+from django.utils.timezone import now 
 
 # ✅ 재료(Ingredient) 모델
 class Ingredient(models.Model):
@@ -16,7 +17,8 @@ class Ingredient(models.Model):
     ])
     vendor = models.CharField(max_length=100, blank=True, null=True)  # ✅ shop
     notes = models.TextField(blank=True, null=True)  # ✅ ingredient_detail
-
+    created_at = models.DateTimeField(default=now, editable=False)
+    
     def __str__(self):
         return self.name
 
