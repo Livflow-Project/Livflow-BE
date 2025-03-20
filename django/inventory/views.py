@@ -129,5 +129,3 @@ class DeleteRecipeView(APIView):
             recipe.delete()
 
         return Response({"message": "레시피 삭제 및 재고 복구 완료"}, status=status.HTTP_204_NO_CONTENT)
-
-

@@ -94,8 +94,8 @@ REDIS_DB = int(os.getenv("REDIS_DB", 0))  # 기본 DB 인덱스
 # Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = '/app/staticfiles'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = '/app/media'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # CORS configuration
 # CORS_ALLOW_ALL_ORIGINS = True # 배포시 False
@@ -286,6 +286,3 @@ TEMPLATES = [
         },
     },
 ]
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")

@@ -100,31 +100,46 @@ class IngredientDetailView(APIView):
     )
 
     def put(self, request, store_id, ingredient_id):
-        """ 특정 재료 수정 (재고 추가 시 기존 재고량에 더함) """
+        """ 특정 재료 수정 (original_stock 감소 시 used_stock을 0으로 초기화) """
         ingredient = get_object_or_404(Ingredient, id=ingredient_id, store_id=store_id)
         serializer = IngredientSerializer(ingredient, data=request.data, partial=True)
 
         if serializer.is_valid():
-            old_original_stock = Decimal(str(ingredient.purchase_quantity))  # 기존 총 재고량
-            new_stock_input = request.data.get("capacity")  # 사용자가 입력한 `capacity`
-            add_stock = request.data.get("add_stock", 0)  # ✅ 추가 구매량 (새로운 필드)
+            old_original_stock = Decimal(str(ingredient.purchase_quantity))  # 기존 original_stock
+            new_original_stock = request.data.get("capacity")
 
-            if new_stock_input is not None:
-                new_original_stock = Decimal(str(new_stock_input))
+            if new_original_stock is not None:
+                new_original_stock = Decimal(str(new_original_stock))
             else:
                 new_original_stock = old_original_stock  # 값이 없으면 기존 값 유지
 
-            new_original_stock += Decimal(str(add_stock))  # ✅ 추가 구매량 반영
+            difference = new_original_stock - old_original_stock  # 용량 변화량 계산
+            print(f"📌 기존 original_stock: {old_original_stock}, 새로운 original_stock: {new_original_stock}, 차이: {difference}")
 
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
+
             if inventory:
-                used_stock = old_original_stock - inventory.remaining_stock  # ✅ 이미 사용된 재고량
-                new_remaining_stock = new_original_stock - used_stock  # ✅ 새로운 `remaining_stock` 계산
+                print(f"🔄 기존 remaining_stock: {inventory.remaining_stock}, 변동 차이: {difference}")
 
-                if new_remaining_stock < 0:
-                    return Response({"error": f"재고 부족: {ingredient.name}의 사용량({used_stock})이 새로운 총량({new_original_stock})보다 큼"}, status=status.HTTP_400_BAD_REQUEST)
+                inventory.remaining_stock = Decimal(str(inventory.remaining_stock))
 
-                inventory.remaining_stock = new_remaining_stock  # ✅ 새로운 `remaining_stock` 적용
+                # 🔥 **original_stock 증가 → remaining_stock 증가**
+                if difference > 0:
+                    inventory.remaining_stock += difference
+                    print(f"✅ 증가 적용 - 새로운 remaining_stock: {inventory.remaining_stock}")
+
+                # 🔥 **original_stock 감소 → used_stock을 0으로 설정 & remaining_stock 재조정**
+                elif difference < 0:
+                    print(f"⚠️ original_stock 감소 감지! used_stock 초기화 적용")
+
+                    # ✅ used_stock 초기화
+                    used_stock = old_original_stock - inventory.remaining_stock
+                    print(f"🔍 기존 사용량(used_stock): {used_stock} → 초기화 (0)")
+
+                    # ✅ remaining_stock을 new_original_stock으로 재설정
+                    inventory.remaining_stock = new_original_stock
+                    print(f"✅ remaining_stock을 new_original_stock({new_original_stock})으로 변경")
+
                 inventory.save()
 
             # ✅ `original_stock` 반영 후 재료 업데이트

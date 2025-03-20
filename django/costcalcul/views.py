@@ -212,4 +212,3 @@ class StoreRecipeDetailView(APIView):
             recipe.delete()  # ✅ 레시피 삭제
 
         return Response({"message": "레시피가 삭제되었으며, 사용한 재료의 재고가 복구되었습니다."}, status=status.HTTP_204_NO_CONTENT)
-

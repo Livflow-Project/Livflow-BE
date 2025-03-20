@@ -133,4 +133,3 @@ class RecipeSerializer(serializers.ModelSerializer):
         ]
 
         return data
-
