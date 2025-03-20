@@ -12,6 +12,7 @@ from drf_yasg import openapi
 from django.db import transaction
 from django.db.models import F
 from django.utils.timezone import now
+from decimal import Decimal
 
 # ✅ 특정 상점의 재고 조회
 class StoreInventoryView(APIView):
@@ -57,26 +58,24 @@ class UseIngredientStockView(APIView):
     def post(self, request, store_id, ingredient_id):
         """ 특정 재료의 재고 사용 처리 """
         request_id = request.META.get('HTTP_X_REQUEST_ID', f"REQ-{now().strftime('%H%M%S%f')}")
-        used_stock = request.data.get("used_stock")
+        used_stock = Decimal(str(request.data.get("used_stock", 0)))
 
         with transaction.atomic():
             inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
             inventory.refresh_from_db()  # ✅ 최신 상태 반영
+
             before_stock = inventory.remaining_stock  # 🔥 기존 재고 상태 저장
+            original_stock = inventory.ingredient.purchase_quantity  # 🔥 원래 구매한 양
 
-            # ✅ 사용량 검증
-            if used_stock is None or not isinstance(used_stock, (int, float)) or used_stock <= 0:
-                return Response({"error": "유효한 사용량(used_stock)을 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+            # ✅ **현재까지 사용한 총량 계산**
+            used_stock_so_far = original_stock - before_stock  # (원래 등록 용량 - 현재 남은 재고)
 
-            # 🔍 최신 original_stock 반영하여 사용 가능 재고 계산
-            max_allowed_stock = inventory.ingredient.purchase_quantity  # 최신 original_stock 반영
+            # ✅ **총 사용량이 original_stock을 넘지 않도록 확인**
+            total_usage = used_stock_so_far + used_stock  # 기존 사용량 + 새로 요청된 사용량
 
-            # ✅ 총 사용 가능 재고 계산
-            total_available_stock = min(inventory.remaining_stock, max_allowed_stock)
-
-            if total_available_stock < used_stock:
-                print(f"❌ [오류] REQUEST_ID: {request_id}, 사용하려는 재고({used_stock})가 총 사용 가능 재고({total_available_stock})보다 큼")
-                return Response({"error": f"최대 사용 가능한 재고는 {total_available_stock}입니다."}, status=status.HTTP_400_BAD_REQUEST)
+            if total_usage > original_stock:
+                print(f"❌ [오류] REQUEST_ID: {request_id}, 총 사용량({total_usage})이 original_stock({original_stock})보다 큼")
+                return Response({"error": f"최대 사용 가능한 재고는 {original_stock - used_stock_so_far}입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
             # ✅ 재고 차감 로직
             Inventory.objects.filter(id=inventory.id).update(remaining_stock=F('remaining_stock') - used_stock)
@@ -95,6 +94,7 @@ class UseIngredientStockView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
 
 
 

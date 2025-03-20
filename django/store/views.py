@@ -24,7 +24,7 @@ class StoreListView(APIView):
     
     def get(self, request):
         """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 이번 달의 Ledger 차트 정보 포함 """
-        stores = Store.objects.filter(user=request.user)
+        stores = Store.objects.filter(user=request.user).order_by("created_at")
         response_data = []
 
         for store in stores:

@@ -41,7 +41,7 @@ class LedgerTransactionListCreateView(APIView):
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         # ✅ ledger.models.Transaction을 조회하도록 변경
-        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month)
+        transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month).order_by("created_at")
         if day:
             transactions = transactions.filter(date__day=day)
 

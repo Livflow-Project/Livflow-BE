@@ -67,6 +67,11 @@ class StoreRecipeListView(APIView):
 
                 print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
+                # ✅ 이미지 없을 경우 예외 처리 추가
+                recipe_img_url = None
+                if recipe.recipe_img and hasattr(recipe.recipe_img, 'url'):
+                    recipe_img_url = recipe.recipe_img.url
+
                 # ✅ 빈 배열일 경우 자동으로 처리
                 response_data = {
                     "id": str(recipe.id),
@@ -109,6 +114,11 @@ class StoreRecipeDetailView(APIView):
             }
             for item in ingredients
     ]
+        
+        # ✅ 이미지 예외 처리 추가
+        recipe_img_url = None
+        if recipe.recipe_img and hasattr(recipe.recipe_img, 'url'):
+            recipe_img_url = recipe.recipe_img.url
 
         # ✅ 응답 데이터 변환
         response_data = {
@@ -138,6 +148,11 @@ class StoreRecipeDetailView(APIView):
         # ✅ `recipe_img`가 없으면 기존 이미지 유지
         if "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img  # 기존 이미지 유지
+            
+        # ✅ `recipe_img`가 비어 있으면 기존 이미지 제거
+        elif not request_data["recipe_img"]:
+            request_data["recipe_img"] = None  # 이미지 삭제
+    
 
         # ✅ `ingredients`가 문자열이면 JSON 변환
         ingredients = request_data.get("ingredients", [])
