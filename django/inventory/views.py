@@ -64,8 +64,8 @@ class UseIngredientStockView(APIView):
             inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
             inventory.refresh_from_db()  # ✅ 최신 상태 반영
 
-            before_stock = inventory.remaining_stock  # 🔥 기존 재고 상태 저장
-            original_stock = inventory.ingredient.purchase_quantity  # 🔥 원래 구매한 양
+            before_stock = Decimal(str(inventory.remaining_stock))  # 🔥 기존 재고 상태 저장
+            original_stock = Decimal(str(inventory.ingredient.purchase_quantity))
 
             # ✅ **현재까지 사용한 총량 계산**
             used_stock_so_far = original_stock - before_stock  # (원래 등록 용량 - 현재 남은 재고)

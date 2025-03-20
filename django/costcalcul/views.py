@@ -42,7 +42,7 @@ class StoreRecipeListView(APIView):
     )
 
     def post(self, request, store_id):
-        """✅ 새로운 레시피 추가 (FormData & JSON 처리)"""
+        """✅ 새로운 레시피 추가"""
         print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
 
         request_data = request.data.copy()
@@ -67,9 +67,9 @@ class StoreRecipeListView(APIView):
 
                 print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
-                # ✅ 이미지 없을 경우 예외 처리 추가
+                # ✅ 이미지 예외 처리 추가
                 recipe_img_url = None
-                if recipe.recipe_img and hasattr(recipe.recipe_img, 'url'):
+                if recipe.recipe_img and recipe.recipe_img.name:  # 🔥 파일이 실제 존재하는지 확인
                     recipe_img_url = recipe.recipe_img.url
 
                 # ✅ 빈 배열일 경우 자동으로 처리
@@ -77,7 +77,7 @@ class StoreRecipeListView(APIView):
                     "id": str(recipe.id),
                     "recipe_name": recipe.name,
                     "recipe_cost": recipe.sales_price_per_item,
-                    "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None,
+                    "recipe_img": recipe_img_url,  # 🔥 수정된 부분
                     "is_favorites": recipe.is_favorites,
                     "production_quantity": recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(recipe.total_ingredient_cost),
@@ -140,15 +140,15 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """✅ 특정 레시피 수정 (FormData & JSON 처리 + 이미지 유지)"""
+        """✅ 특정 레시피 수정"""
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         request_data = request.data.copy()
         partial = True  # 일부 필드만 업데이트 가능하도록 설정
 
         # ✅ `recipe_img`가 없으면 기존 이미지 유지
         if "recipe_img" not in request_data:
-            request_data["recipe_img"] = recipe.recipe_img  # 기존 이미지 유지
-            
+            request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
+
         # ✅ `recipe_img`가 비어 있으면 기존 이미지 제거
         elif not request_data["recipe_img"]:
             request_data["recipe_img"] = None  # 이미지 삭제
