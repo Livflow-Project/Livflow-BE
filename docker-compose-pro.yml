@@ -15,7 +15,7 @@ services:
       - ./django:/app/django
       - /home/joo/back-end-coffee/django/logs:/home/joo/back-end-coffee/django/logs 
       - static_volume:/app/staticfiles
-      - media_volume:/app/media  
+      - media_volume:/app/django/livflow/media
     ports:
       - "8000:8000"
     networks:
@@ -36,7 +36,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt
       - /home/joo/back-end-coffee/certbot:/var/www/certbot
       - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - media_volume:/app/django/livflow/media 
     depends_on:
       - web
     networks:
