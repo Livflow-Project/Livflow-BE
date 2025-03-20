@@ -140,21 +140,20 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """✅ 특정 레시피 수정"""
+        """✅ 특정 레시피 수정 (이미지 없이도 수정 가능하도록 처리)"""
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         request_data = request.data.copy()
-        partial = True  # 일부 필드만 업데이트 가능하도록 설정
+        partial = True  # 부분 업데이트 허용
 
-        # ✅ `recipe_img`가 없으면 기존 이미지 유지
+        # ✅ `recipe_img` 필드가 없으면 기존 이미지 유지
         if "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
 
-        # ✅ `recipe_img`가 비어 있으면 기존 이미지 제거
-        elif not request_data["recipe_img"]:
-            request_data["recipe_img"] = None  # 이미지 삭제
-    
+        # ✅ `recipe_img`가 비어 있거나 'null' 값이 전달되면 None으로 처리 (이미지 삭제)
+        elif request_data.get("recipe_img") in [None, "null", "", "None"]:
+            request_data["recipe_img"] = None  
 
-        # ✅ `ingredients`가 문자열이면 JSON 변환
+        # ✅ `ingredients` JSON 변환
         ingredients = request_data.get("ingredients", [])
         if isinstance(ingredients, str):
             try:
@@ -173,10 +172,9 @@ class StoreRecipeDetailView(APIView):
             recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
             recipe.save()
 
-            # ✅ 기존 재료 삭제 (복구 로직 제거)
+            # ✅ 기존 재료 삭제 후 새로 추가
             RecipeItem.objects.filter(recipe=recipe).delete()
 
-            # ✅ 새로운 재료 반영 (remaining_stock 수정 X)
             if isinstance(ingredients, list):  
                 for ingredient_data in ingredients:
                     ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
@@ -188,9 +186,8 @@ class StoreRecipeDetailView(APIView):
                         quantity_used=required_amount,
                     )
 
-        # ✅ 최신 레시피 데이터 반환 (업데이트된 ingredients 포함)
-        updated_recipe = Recipe.objects.get(id=recipe.id)  
-        return Response(RecipeSerializer(updated_recipe).data, status=status.HTTP_200_OK)
+        return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
     @swagger_auto_schema(
         operation_summary="특정 레시피 삭제",
