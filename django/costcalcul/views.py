@@ -4,13 +4,12 @@ from rest_framework import status
 from .models import Recipe, RecipeItem
 from .serializers import RecipeSerializer
 from django.shortcuts import get_object_or_404
-from ingredients.models import Ingredient  # ✅ Ingredient 모델 import
+from ingredients.models import Ingredient  
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from inventory.models import Inventory
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
-from django.utils.timezone import now
 import json
 
 # ✅ 특정 상점의 모든 레시피 조회
@@ -29,7 +28,7 @@ class StoreRecipeListView(APIView):
                 "recipe_name": recipe.name,
                 "recipe_cost": recipe.sales_price_per_item if recipe.sales_price_per_item else None,
                 "recipe_img": recipe.recipe_img.url if recipe.recipe_img and hasattr(recipe.recipe_img, 'url') else None, 
-                "is_favorites": recipe.is_favorites,  # ✅ 기본값 설정 (프론트엔드 요구사항 반영)
+                "is_favorites": recipe.is_favorites,  
             }
             for recipe in recipes
         ]
@@ -43,11 +42,11 @@ class StoreRecipeListView(APIView):
 
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
-        print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
+        # print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
 
         request_data = request.data.copy()
 
-        # ✅ `ingredients`가 문자열이면 JSON 변환
+        # `ingredients`가 문자열이면 JSON 변환
         ingredients = request_data.get("ingredients", [])
         if isinstance(ingredients, str):
             try:
@@ -65,19 +64,19 @@ class StoreRecipeListView(APIView):
                     is_favorites=str(request.data.get("is_favorites", "false")).lower() == "true"
                 )
 
-                print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
+                # print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
 
-                # ✅ 이미지 예외 처리 추가
+                # 이미지 예외 처리 추가
                 recipe_img_url = None
-                if recipe.recipe_img and recipe.recipe_img.name:  # 🔥 파일이 실제 존재하는지 확인
+                if recipe.recipe_img and recipe.recipe_img.name: 
                     recipe_img_url = recipe.recipe_img.url
 
-                # ✅ 빈 배열일 경우 자동으로 처리
+                # 빈 배열일 경우 자동으로 처리
                 response_data = {
                     "id": str(recipe.id),
                     "recipe_name": recipe.name,
                     "recipe_cost": recipe.sales_price_per_item,
-                    "recipe_img": recipe_img_url,  # 🔥 수정된 부분
+                    "recipe_img": recipe_img_url,  
                     "is_favorites": recipe.is_favorites,
                     "production_quantity": recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(recipe.total_ingredient_cost),
@@ -85,14 +84,14 @@ class StoreRecipeListView(APIView):
                     "ingredients": ingredients,  # 자동으로 빈 배열이 들어감
                 }
 
-                print(f"📌 Final API Response: {response_data}")
+                # print(f"📌 Final API Response: {response_data}")
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
-# ✅ 특정 레시피 상세 조회
+# 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
     parser_classes = (JSONParser,MultiPartParser, FormParser)
 
@@ -115,19 +114,19 @@ class StoreRecipeDetailView(APIView):
             for item in ingredients
     ]
         
-        # ✅ 이미지 예외 처리 추가
+        # 이미지 예외 처리 추가
         recipe_img_url = None
         if recipe.recipe_img and hasattr(recipe.recipe_img, 'url'):
             recipe_img_url = recipe.recipe_img.url
 
-        # ✅ 응답 데이터 변환
+        # 응답 데이터 변환
         response_data = {
-            "recipe_id": str(recipe.id),  # ✅ UUID 유지 (프론트에서 crypto.randomUUID()로 변경)
+            "recipe_id": str(recipe.id),  # UUID 유지 (프론트에서 crypto.randomUUID()로 변경)
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
             "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None, 
-            "is_favorites": recipe.is_favorites,  # ✅ 항상 true로 설정
-            "ingredients": ingredients_data,  # ✅ 필요한 필드만 유지
+            "is_favorites": recipe.is_favorites,  # 항상 true로 설정
+            "ingredients": ingredients_data,  # 필요한 필드만 유지
             "production_quantity": recipe.production_quantity_per_batch,
         }
 
