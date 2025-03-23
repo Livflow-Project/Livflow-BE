@@ -5,7 +5,7 @@ from .models import Recipe  # ✅ 기존 DB 값 가져오기 위해 추가
 logger = logging.getLogger(__name__)
 
 def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity_per_batch, recipe_id=None):
-    print(f"🛠️ [DEBUG] Received Ingredients: {ingredients}")  # ✅ 원가 계산에 들어오는 값 확인
+    # print(f"🛠️ [DEBUG] Received Ingredients: {ingredients}") 
 
     # ✅ 기존 DB 값 유지
     if recipe_id:
@@ -50,7 +50,7 @@ def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity
     total_sales_revenue = sales_price * production_quantity
     material_ratio = round(total_material_cost / total_sales_revenue, 2) if total_sales_revenue != 0 else 0  
 
-    print(f"🛠️ [DEBUG] Cost Per Item: {cost_per_item}, Material Ratio: {material_ratio}")
+    # print(f"🛠️ [DEBUG] Cost Per Item: {cost_per_item}, Material Ratio: {material_ratio}")
 
     return {
         "ingredient_costs": ingredient_costs,

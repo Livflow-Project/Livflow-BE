@@ -139,7 +139,7 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """✅ 특정 레시피 수정 (이미지 없이도 수정 가능하도록 처리)"""
+        """✅ 특정 레시피 수정 (이미지 없이도 수정 가능하도록 처리 + 이미지 삭제 반영)"""
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         request_data = request.data.copy()
         partial = True  # 부분 업데이트 허용
@@ -148,9 +148,11 @@ class StoreRecipeDetailView(APIView):
         if "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
 
-        # ✅ `recipe_img`가 비어 있거나 'null' 값이 전달되면 None으로 처리 (이미지 삭제)
+        # ✅ `recipe_img`가 비어 있거나 'null' 값이 전달되면 이미지 삭제
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
-            request_data["recipe_img"] = None  
+            if recipe.recipe_img:
+                recipe.recipe_img.delete(save=False)  # ✅ 실제 파일 삭제
+            request_data["recipe_img"] = None
 
         # ✅ `ingredients` JSON 변환
         ingredients = request_data.get("ingredients", [])
@@ -186,6 +188,7 @@ class StoreRecipeDetailView(APIView):
                     )
 
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
 
     @swagger_auto_schema(
