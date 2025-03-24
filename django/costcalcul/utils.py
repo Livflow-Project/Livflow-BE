@@ -1,6 +1,7 @@
 import logging
 from decimal import Decimal, InvalidOperation
-from .models import Recipe  # ✅ 기존 DB 값 가져오기 위해 추가
+from .models import Recipe, RecipeItem  # ✅ 기존 DB 값 가져오기 위해 추가
+from django.db.models import Sum
 
 logger = logging.getLogger(__name__)
 
@@ -59,3 +60,12 @@ def calculate_recipe_cost(ingredients, sales_price_per_item, production_quantity
         "material_ratio": float(material_ratio)
     }
 
+def get_total_used_quantity(ingredient):
+    """
+    해당 ingredient가 사용된 모든 레시피에서의 총 사용량 합산
+    """
+    total_used = RecipeItem.objects.filter(ingredient=ingredient).aggregate(
+        total=Sum('quantity_used')
+    )["total"] or Decimal("0")
+
+    return total_used
