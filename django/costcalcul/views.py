@@ -115,15 +115,13 @@ class StoreRecipeDetailView(APIView):
             if inventory:
                 original_stock = Decimal(str(ingredient.purchase_quantity))
                 remaining_stock = Decimal(str(inventory.remaining_stock))
+                used_stock = original_stock - remaining_stock
 
-                print(f"\n🧾 [디버깅] Ingredient: {ingredient.name}")
-                print(f"📦 original_stock (purchase_quantity): {original_stock}")
-                print(f"📦 remaining_stock: {remaining_stock}")
-                print(f"📏 현재 required_amount: {required_amount}")
+                print(f"📉 used_stock: {used_stock}")
 
-                # ✅ 구매량이 변경된 경우 → required_amount = 0
-                if original_stock != remaining_stock:
-                    print("⚠️ 구매량 변경 감지 → required_amount 0 처리")
+                # ✅ 사용량 0이고 구매량 줄은 흔적이 있다면 required_amount 무조건 0
+                if used_stock == 0 and float(required_amount) > float(original_stock):
+                    print("⚠️ 구매량 줄었고 사용 이력 없음 → required_amount 0 처리")
                     required_amount = Decimal("0.0")
 
             ingredients_data.append({
