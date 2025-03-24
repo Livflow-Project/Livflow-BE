@@ -188,14 +188,20 @@ class StoreRecipeDetailView(APIView):
             ingredient = get_object_or_404(Ingredient, id=ing.get("ingredient_id"))
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
 
+            required_amount = Decimal(str(ing.get("required_amount", 0)))  # ✅ 여기에서 미리 가져옴
+
             if inventory:
                 original_stock = Decimal(str(ingredient.purchase_quantity))
-                used_stock_so_far = original_stock - Decimal(str(inventory.remaining_stock))
 
-                if original_stock < used_stock_so_far:
-                    ing["required_amount"] = 0  # ✅ 재고가 줄었을 경우 사용량 0 처리
+                # ✅ 프론트 요청 기준 로직 적용
+                if required_amount > original_stock:
+                    print(f"⚠️ 사용량이 구매량보다 많음 → required_amount 0으로 처리")
+                    required_amount = Decimal("0.0")
 
+            # ✅ 다시 ing에 값 반영
+            ing["required_amount"] = float(required_amount)
             updated_ingredients.append(ing)
+
 
         request_data["ingredients"] = updated_ingredients
 
