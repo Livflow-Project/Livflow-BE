@@ -11,7 +11,7 @@ from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
 import json
-from ingredients.utils import get_total_used_quantity
+from .utils import get_total_used_quantity
 
 
 # ✅ 특정 상점의 모든 레시피 조회
