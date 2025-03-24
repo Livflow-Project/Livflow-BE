@@ -149,6 +149,7 @@ class StoreRecipeDetailView(APIView):
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
             if recipe.recipe_img:
                 recipe.recipe_img.delete(save=False)
+                print(f"🧹 이미지 삭제 완료: {recipe.recipe_img.name}")
             request_data["recipe_img"] = None
 
         # ingredients 처리
