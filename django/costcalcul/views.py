@@ -104,34 +104,33 @@ class StoreRecipeDetailView(APIView):
         """ 특정 레시피 상세 조회 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
-
+        
         # ✅ 각 재료의 정보 가져오기
         ingredients_data = []
         for item in ingredients:
             ingredient = item.ingredient
             required_amount = item.quantity_used
 
-            # 재고 정보 가져오기
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
             if inventory:
                 original_stock = Decimal(str(ingredient.purchase_quantity))
                 remaining_stock = Decimal(str(inventory.remaining_stock))
-                used_stock_so_far = original_stock - Decimal(str(inventory.remaining_stock))
-                            # 🔍 디버깅 출력
+
                 print(f"\n🧾 [디버깅] Ingredient: {ingredient.name}")
                 print(f"📦 original_stock (purchase_quantity): {original_stock}")
                 print(f"📦 remaining_stock: {remaining_stock}")
-                print(f"📉 used_stock_so_far: {used_stock_so_far}")
                 print(f"📏 현재 required_amount: {required_amount}")
-                # ✅ 재고가 줄어든 경우 사용량 0으로 처리
-                if original_stock < used_stock_so_far:
-                    print("⚠️ 사용량이 original_stock을 초과! required_amount → 0으로 변경")
+
+                # ✅ 구매량이 변경된 경우 → required_amount = 0
+                if original_stock != remaining_stock:
+                    print("⚠️ 구매량 변경 감지 → required_amount 0 처리")
                     required_amount = Decimal("0.0")
 
             ingredients_data.append({
                 "ingredient_id": str(ingredient.id),
-                "required_amount": float(required_amount)  # ✅ 기존 quantity_used 대신 재계산된 값
+                "required_amount": float(required_amount)
             })
+
 
         # 이미지 예외 처리 추가
         recipe_img_url = None
@@ -167,7 +166,6 @@ class StoreRecipeDetailView(APIView):
         if "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
-            # ⛔️ 삭제 전에 이름 백업
             if recipe.recipe_img and recipe.recipe_img.name:
                 img_name = recipe.recipe_img.name
                 recipe.recipe_img.delete(save=False)
@@ -188,20 +186,22 @@ class StoreRecipeDetailView(APIView):
             ingredient = get_object_or_404(Ingredient, id=ing.get("ingredient_id"))
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
 
-            required_amount = Decimal(str(ing.get("required_amount", 0)))  # ✅ 여기에서 미리 가져옴
+            required_amount = Decimal(str(ing.get("required_amount", 0)))
 
             if inventory:
-                original_stock = Decimal(str(ingredient.purchase_quantity))
+                current_capacity = Decimal(str(ingredient.purchase_quantity))
+                remaining_stock = Decimal(str(inventory.remaining_stock))
 
-                # ✅ 프론트 요청 기준 로직 적용
-                if required_amount > original_stock:
-                    print(f"⚠️ 사용량이 구매량보다 많음 → required_amount 0으로 처리")
+                print(f"\n🧾 [디버깅] Ingredient: {ingredient.name}")
+                print(f"📦 현재 구매량: {current_capacity}, 현재 재고: {remaining_stock}")
+
+                # ✅ 재료의 구매량이 줄어든 경우 무조건 0 처리
+                if current_capacity != remaining_stock:
+                    print("⚠️ 구매량이 줄어듦 → required_amount 0 처리")
                     required_amount = Decimal("0.0")
 
-            # ✅ 다시 ing에 값 반영
             ing["required_amount"] = float(required_amount)
             updated_ingredients.append(ing)
-
 
         request_data["ingredients"] = updated_ingredients
 
@@ -226,6 +226,7 @@ class StoreRecipeDetailView(APIView):
                 )
 
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
 
 
