@@ -139,22 +139,19 @@ class StoreRecipeDetailView(APIView):
     )
 
     def put(self, request, store_id, recipe_id):
-        """✅ 특정 레시피 수정 (이미지 없이도 수정 가능하도록 처리 + 이미지 삭제 반영)"""
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         request_data = request.data.copy()
-        partial = True  # 부분 업데이트 허용
+        partial = True
 
-        # ✅ `recipe_img` 필드가 없으면 기존 이미지 유지
+        # 이미지 유지 또는 삭제 처리
         if "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
-
-        # ✅ `recipe_img`가 비어 있거나 'null' 값이 전달되면 이미지 삭제
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
             if recipe.recipe_img:
-                recipe.recipe_img.delete(save=False)  # ✅ 실제 파일 삭제
+                recipe.recipe_img.delete(save=False)
             request_data["recipe_img"] = None
 
-        # ✅ `ingredients` JSON 변환
+        # ingredients 처리
         ingredients = request_data.get("ingredients", [])
         if isinstance(ingredients, str):
             try:
@@ -162,32 +159,45 @@ class StoreRecipeDetailView(APIView):
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        request_data["ingredients"] = ingredients
-        serializer = RecipeSerializer(recipe, data=request_data, partial=partial)
+        updated_ingredients = []
 
+        for ing in ingredients:
+            ingredient = get_object_or_404(Ingredient, id=ing.get("ingredient_id"))
+            inventory = Inventory.objects.filter(ingredient=ingredient).first()
+
+            if inventory:
+                original_stock = ingredient.purchase_quantity
+                used_stock_so_far = original_stock - inventory.remaining_stock
+
+                if original_stock < used_stock_so_far:
+                    ing["required_amount"] = 0  # ✅ 재고가 줄었을 경우 사용량 0 처리
+
+            updated_ingredients.append(ing)
+
+        request_data["ingredients"] = updated_ingredients
+
+        serializer = RecipeSerializer(recipe, data=request_data, partial=partial)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # ✅ is_favorites 값 업데이트
             recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
             recipe.save()
 
-            # ✅ 기존 재료 삭제 후 새로 추가
             RecipeItem.objects.filter(recipe=recipe).delete()
 
-            if isinstance(ingredients, list):  
-                for ingredient_data in ingredients:
-                    ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
-                    required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
+            for ingredient_data in updated_ingredients:
+                ingredient = get_object_or_404(Ingredient, id=ingredient_data.get("ingredient_id"))
+                required_amount = Decimal(str(ingredient_data.get("required_amount", 0)))
 
-                    RecipeItem.objects.create(
-                        recipe=recipe,
-                        ingredient=ingredient,
-                        quantity_used=required_amount,
-                    )
+                RecipeItem.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity_used=required_amount,
+                )
 
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
 
 
