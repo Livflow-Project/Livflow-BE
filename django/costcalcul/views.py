@@ -167,8 +167,8 @@ class StoreRecipeDetailView(APIView):
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
 
             if inventory:
-                original_stock = ingredient.purchase_quantity
-                used_stock_so_far = original_stock - inventory.remaining_stock
+                original_stock = Decimal(str(ingredient.purchase_quantity))
+                used_stock_so_far = original_stock - Decimal(str(inventory.remaining_stock))
 
                 if original_stock < used_stock_so_far:
                     ing["required_amount"] = 0  # ✅ 재고가 줄었을 경우 사용량 0 처리
