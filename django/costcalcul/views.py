@@ -106,14 +106,26 @@ class StoreRecipeDetailView(APIView):
         ingredients = RecipeItem.objects.filter(recipe=recipe)
 
         # ✅ 각 재료의 정보 가져오기
-        ingredients_data = [
-            {
-                "ingredient_id": str(item.ingredient.id),  
-                "required_amount": item.quantity_used  # ✅ 필요한 데이터만 포함
-            }
-            for item in ingredients
-    ]
-        
+        ingredients_data = []
+        for item in ingredients:
+            ingredient = item.ingredient
+            required_amount = item.quantity_used
+
+            # 재고 정보 가져오기
+            inventory = Inventory.objects.filter(ingredient=ingredient).first()
+            if inventory:
+                original_stock = Decimal(str(ingredient.purchase_quantity))
+                used_stock_so_far = original_stock - Decimal(str(inventory.remaining_stock))
+
+                # ✅ 재고가 줄어든 경우 사용량 0으로 처리
+                if original_stock < used_stock_so_far:
+                    required_amount = Decimal("0.0")
+
+            ingredients_data.append({
+                "ingredient_id": str(ingredient.id),
+                "required_amount": float(required_amount)  # ✅ 기존 quantity_used 대신 재계산된 값
+            })
+
         # 이미지 예외 처리 추가
         recipe_img_url = None
         if recipe.recipe_img and hasattr(recipe.recipe_img, 'url'):
@@ -131,6 +143,7 @@ class StoreRecipeDetailView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
     @swagger_auto_schema(
         operation_summary="특정 레시피 수정",
