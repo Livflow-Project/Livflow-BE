@@ -11,6 +11,8 @@ from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
 import json
+from ingredients.utils import get_total_used_quantity
+
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
@@ -155,6 +157,7 @@ class StoreRecipeDetailView(APIView):
         responses={200: "레시피 수정 성공", 400: "유효성 검사 실패", 404: "레시피를 찾을 수 없음"}
     )
 
+
     def put(self, request, store_id, recipe_id):
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         request_data = request.data.copy()
@@ -189,13 +192,17 @@ class StoreRecipeDetailView(APIView):
             if inventory:
                 current_capacity = Decimal(str(ingredient.purchase_quantity))
                 remaining_stock = Decimal(str(inventory.remaining_stock))
+                total_used = get_total_used_quantity(ingredient)
+
+                estimated_old_capacity = current_capacity + total_used
 
                 print(f"\n🧾 [디버깅] Ingredient: {ingredient.name}")
-                print(f"📦 현재 구매량: {current_capacity}, 현재 재고: {remaining_stock}")
+                print(f"📦 이전 구매량 추정: {estimated_old_capacity}, 현재 구매량: {current_capacity}")
+                print(f"📏 기존 required_amount: {required_amount}, 총 사용량: {total_used}")
 
-                # ✅ 재료의 구매량이 줄어든 경우 무조건 0 처리
-                if current_capacity != remaining_stock:
-                    print("⚠️ 구매량이 줄어듦 → required_amount 0 처리")
+                # ✅ 구매량이 줄었고, 아직 사용 안 했고, 이전 입력값이 존재하면 → 초기화
+                if current_capacity < estimated_old_capacity and required_amount != 0 and total_used == 0:
+                    print("⚠️ 조건 충족 → required_amount 초기화")
                     required_amount = Decimal("0.0")
 
             ing["required_amount"] = float(required_amount)
@@ -224,9 +231,6 @@ class StoreRecipeDetailView(APIView):
                 )
 
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
-
-
-
 
 
 
