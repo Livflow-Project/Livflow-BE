@@ -119,10 +119,10 @@ class StoreRecipeDetailView(APIView):
 
                 print(f"📉 used_stock: {used_stock}")
 
-                # ✅ 사용량 0이고 구매량 줄은 흔적이 있다면 required_amount 무조건 0
-                if used_stock == 0 and float(required_amount) > float(original_stock):
-                    print("⚠️ 구매량 줄었고 사용 이력 없음 → required_amount 0 처리")
+                if used_stock == 0:
+                    print("⚠️ 사용 이력 없음 → required_amount 무조건 0 처리")
                     required_amount = Decimal("0.0")
+
 
             ingredients_data.append({
                 "ingredient_id": str(ingredient.id),
