@@ -143,16 +143,18 @@ class StoreRecipeDetailView(APIView):
         request_data = request.data.copy()
         partial = True
 
-        # 이미지 유지 또는 삭제 처리
+        # ✅ 이미지 유지 또는 삭제 처리
         if "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
-            if recipe.recipe_img:
+            # ⛔️ 삭제 전에 이름 백업
+            if recipe.recipe_img and recipe.recipe_img.name:
+                img_name = recipe.recipe_img.name
                 recipe.recipe_img.delete(save=False)
-                print(f"🧹 이미지 삭제 완료: {recipe.recipe_img.name}")
+                print(f"🧹 이미지 삭제 완료: {img_name}")
             request_data["recipe_img"] = None
 
-        # ingredients 처리
+        # ✅ ingredients 처리
         ingredients = request_data.get("ingredients", [])
         if isinstance(ingredients, str):
             try:
@@ -198,6 +200,7 @@ class StoreRecipeDetailView(APIView):
                 )
 
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
 
 
