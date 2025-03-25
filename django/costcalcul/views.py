@@ -164,8 +164,12 @@ class StoreRecipeDetailView(APIView):
         partial = True
 
         # ✅ 이미지 유지 또는 삭제 처리
-        if "recipe_img" not in request_data:
+        if "recipe_img" in request.FILES:
+            request_data["recipe_img"] = request.FILES["recipe_img"]
+
+        elif "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
+
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
             if recipe.recipe_img and recipe.recipe_img.name:
                 img_name = recipe.recipe_img.name
