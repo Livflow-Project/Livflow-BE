@@ -46,7 +46,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         if instance:
             data.setdefault("sales_price_per_item", instance.sales_price_per_item)  # ✅ 기존 값 유지
             data.setdefault("production_quantity_per_batch", instance.production_quantity_per_batch)  # ✅ 기존 값 유지
-
+            data.setdefault("recipe_img", instance.recipe_img)
         return data
 
     def create(self, validated_data):
