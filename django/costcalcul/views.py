@@ -222,7 +222,7 @@ class StoreRecipeDetailView(APIView):
         request_data["ingredients"] = updated_ingredients
 
         # ✅ serializer에 FILES도 함께 넘김
-        serializer = RecipeSerializer(recipe, data=request_data, partial=partial)
+        serializer = RecipeSerializer(instance=recipe, data=request_data, partial=partial)
 
         if not serializer.is_valid():
             print(f"🚨 serializer.errors: {serializer.errors}")
