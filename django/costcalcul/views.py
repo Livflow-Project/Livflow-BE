@@ -165,22 +165,23 @@ class StoreRecipeDetailView(APIView):
 
         # ✅ 이미지 디버깅
         print(f"📂 request.FILES: {request.FILES}")
-        print(f"📸 recipe_img in FILES: {request.FILES.get('recipe_img')}")
+        image_file = request.FILES.get('recipe_img')
+        print(f"📸 image_file: {image_file}")
 
-        # ✅ 이미지 유지 또는 삭제 처리
-        if "recipe_img" in request.FILES:
-            request_data["recipe_img"] = request.FILES["recipe_img"]
-            print("✅ 이미지 파일이 FILES에서 감지되어 request_data에 설정됨.")
+        # ✅ 이미지 필드 강제 삽입
+        if image_file:
+            request_data['recipe_img'] = image_file
+            print("✅ 이미지가 request_data에 추가됨.")
         elif "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
-            print("📎 기존 이미지 유지 (이미지 없음)")
+            print("📎 기존 이미지 유지")
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
             if recipe.recipe_img and recipe.recipe_img.name:
                 img_name = recipe.recipe_img.name
                 recipe.recipe_img.delete(save=False)
                 print(f"🧹 이미지 삭제 완료: {img_name}")
             request_data["recipe_img"] = None
-            print("❌ recipe_img 필드 명시적 삭제 요청 감지")
+            print("❌ 이미지 삭제 요청 처리됨.")
 
         print(f"📦 request_data['recipe_img']: {request_data.get('recipe_img')}")
 
@@ -220,6 +221,7 @@ class StoreRecipeDetailView(APIView):
 
         request_data["ingredients"] = updated_ingredients
 
+        # ✅ serializer에 FILES도 함께 넘김
         serializer = RecipeSerializer(recipe, data=request_data, partial=partial)
 
         if not serializer.is_valid():
@@ -242,10 +244,11 @@ class StoreRecipeDetailView(APIView):
                     quantity_used=required_amount,
                 )
 
-        # ✅ 최종 이미지 확인
-        print(f"✅ 최종 저장된 이미지 경로: {recipe.recipe_img.url if recipe.recipe_img else 'None'}")
+        print(f"✅ 최종 저장된 이미지: {recipe.recipe_img}")
+        print(f"✅ 최종 저장된 이미지 URL: {recipe.recipe_img.url if recipe.recipe_img else 'None'}")
 
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
 
 
