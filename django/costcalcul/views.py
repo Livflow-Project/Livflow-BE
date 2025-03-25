@@ -227,7 +227,9 @@ class StoreRecipeDetailView(APIView):
         if not serializer.is_valid():
             print(f"🚨 serializer.errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        
+        recipe = serializer.save()
+        
         with transaction.atomic():
             recipe.is_favorites = str(request.data.get("is_favorites", str(recipe.is_favorites).lower())).lower() == "true"
             recipe.save()
