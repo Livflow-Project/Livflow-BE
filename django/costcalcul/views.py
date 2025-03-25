@@ -163,19 +163,26 @@ class StoreRecipeDetailView(APIView):
         request_data = request.data.copy()
         partial = True
 
+        # ✅ 이미지 디버깅
+        print(f"📂 request.FILES: {request.FILES}")
+        print(f"📸 recipe_img in FILES: {request.FILES.get('recipe_img')}")
+
         # ✅ 이미지 유지 또는 삭제 처리
         if "recipe_img" in request.FILES:
             request_data["recipe_img"] = request.FILES["recipe_img"]
-
+            print("✅ 이미지 파일이 FILES에서 감지되어 request_data에 설정됨.")
         elif "recipe_img" not in request_data:
             request_data["recipe_img"] = recipe.recipe_img if recipe.recipe_img and recipe.recipe_img.name else None
-
+            print("📎 기존 이미지 유지 (이미지 없음)")
         elif request_data.get("recipe_img") in [None, "null", "", "None"]:
             if recipe.recipe_img and recipe.recipe_img.name:
                 img_name = recipe.recipe_img.name
                 recipe.recipe_img.delete(save=False)
                 print(f"🧹 이미지 삭제 완료: {img_name}")
             request_data["recipe_img"] = None
+            print("❌ recipe_img 필드 명시적 삭제 요청 감지")
+
+        print(f"📦 request_data['recipe_img']: {request_data.get('recipe_img')}")
 
         # ✅ ingredients 처리
         ingredients = request_data.get("ingredients", [])
@@ -204,7 +211,6 @@ class StoreRecipeDetailView(APIView):
                 print(f"📦 이전 구매량 추정: {estimated_old_capacity}, 현재 구매량: {current_capacity}")
                 print(f"📏 기존 required_amount: {required_amount}, 총 사용량: {total_used}")
 
-                # ✅ 구매량이 줄었고, 아직 사용 안 했고, 이전 입력값이 존재하면 → 초기화
                 if current_capacity < estimated_old_capacity and required_amount != 0 and total_used == 0:
                     print("⚠️ 조건 충족 → required_amount 초기화")
                     required_amount = Decimal("0.0")
@@ -215,7 +221,9 @@ class StoreRecipeDetailView(APIView):
         request_data["ingredients"] = updated_ingredients
 
         serializer = RecipeSerializer(recipe, data=request_data, partial=partial)
+
         if not serializer.is_valid():
+            print(f"🚨 serializer.errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
@@ -234,7 +242,11 @@ class StoreRecipeDetailView(APIView):
                     quantity_used=required_amount,
                 )
 
+        # ✅ 최종 이미지 확인
+        print(f"✅ 최종 저장된 이미지 경로: {recipe.recipe_img.url if recipe.recipe_img else 'None'}")
+
         return Response(RecipeSerializer(recipe).data, status=status.HTTP_200_OK)
+
 
 
 
