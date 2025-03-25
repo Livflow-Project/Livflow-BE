@@ -48,7 +48,22 @@ class RecipeSerializer(serializers.ModelSerializer):
             data.setdefault("production_quantity_per_batch", instance.production_quantity_per_batch)  # ✅ 기존 값 유지
             data.setdefault("recipe_img", instance.recipe_img)
         return data
+    
+    def update(self, instance, validated_data):
+        # 이미지 필드 수동 처리
+        if "recipe_img" in validated_data:
+            instance.recipe_img = validated_data.get("recipe_img")
 
+        # 기존 로직들 반영
+        instance.name = validated_data.get("name", instance.name)
+        instance.sales_price_per_item = validated_data.get("sales_price_per_item", instance.sales_price_per_item)
+        instance.production_quantity_per_batch = validated_data.get("production_quantity_per_batch", instance.production_quantity_per_batch)
+        
+        instance.save()
+        return instance
+
+        
+        
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
         recipe = Recipe.objects.create(**validated_data)
