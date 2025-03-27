@@ -132,6 +132,12 @@ class IngredientDetailView(APIView):
                 elif difference < 0:
                     print(f"⚠️ original_stock 감소 감지! used_stock 초기화 적용")
 
+                    # ✅ 백업 로직 추가
+                    if ingredient.original_stock_before_edit == 0:
+                        ingredient.original_stock_before_edit = old_original_stock
+                        print(f"📝 original_stock_before_edit 백업: {old_original_stock}")
+                        ingredient.save()
+
                     # ✅ used_stock 초기화
                     used_stock = old_original_stock - inventory.remaining_stock
                     print(f"🔍 기존 사용량(used_stock): {used_stock} → 초기화 (0)")
@@ -139,6 +145,7 @@ class IngredientDetailView(APIView):
                     # ✅ remaining_stock을 new_original_stock으로 재설정
                     inventory.remaining_stock = new_original_stock
                     print(f"✅ remaining_stock을 new_original_stock({new_original_stock})으로 변경")
+
 
                 inventory.save()
 
