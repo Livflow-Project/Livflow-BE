@@ -107,6 +107,9 @@ class StoreRecipeDetailView(APIView):
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
 
+
+        print(f"🧾 재료: {ingredient.name}, 저장된 사용량: {required_amount}")
+        print(f"🔍 구매량: {ingredient.purchase_quantity}, 기존 구매량: {ingredient.original_stock_before_edit}")
         ingredients_data = []
         for item in ingredients:
             ingredient = item.ingredient
@@ -123,9 +126,6 @@ class StoreRecipeDetailView(APIView):
                 # ✅ '리셋' 판단 기준 추가: 구매량이 기존보다 줄었는가?
                 if ingredient.purchase_quantity < ingredient.original_stock_before_edit:
                     print("🌀 구매량 감소 감지 → required_amount = 0 처리")
-                    required_amount = Decimal("0.0")
-                elif used_stock <= Decimal("0.0001"):
-                    print("⚠️ 사용 이력 거의 없음 → required_amount 무조건 0 처리")
                     required_amount = Decimal("0.0")
 
             ingredients_data.append({
