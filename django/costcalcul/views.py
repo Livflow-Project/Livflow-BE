@@ -106,8 +106,7 @@ class StoreRecipeDetailView(APIView):
         """ 특정 레시피 상세 조회 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
-        
-        # ✅ 각 재료의 정보 가져오기
+
         ingredients_data = []
         for item in ingredients:
             ingredient = item.ingredient
@@ -121,8 +120,11 @@ class StoreRecipeDetailView(APIView):
 
                 print(f"📉 used_stock: {used_stock}")
 
-                # ✅ 근사값 비교로 수정
-                if used_stock <= Decimal("0.0001"):
+                # ✅ '리셋' 판단 기준 추가: 구매량이 기존보다 줄었는가?
+                if ingredient.purchase_quantity < ingredient.original_stock_before_edit:
+                    print("🌀 구매량 감소 감지 → required_amount = 0 처리")
+                    required_amount = Decimal("0.0")
+                elif used_stock <= Decimal("0.0001"):
                     print("⚠️ 사용 이력 거의 없음 → required_amount 무조건 0 처리")
                     required_amount = Decimal("0.0")
 
@@ -131,23 +133,23 @@ class StoreRecipeDetailView(APIView):
                 "required_amount": float(required_amount)
             })
 
-        # 이미지 예외 처리 추가
+        # 이미지 예외 처리
         recipe_img_url = None
         if recipe.recipe_img and hasattr(recipe.recipe_img, 'url'):
             recipe_img_url = recipe.recipe_img.url
 
-        # 응답 데이터 변환
         response_data = {
-            "recipe_id": str(recipe.id),  # UUID 유지 (프론트에서 crypto.randomUUID()로 변경)
+            "recipe_id": str(recipe.id),
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
-            "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None, 
+            "recipe_img": recipe_img_url,
             "is_favorites": recipe.is_favorites,
             "ingredients": ingredients_data,
             "production_quantity": recipe.production_quantity_per_batch,
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 
 

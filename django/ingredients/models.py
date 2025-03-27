@@ -17,6 +17,7 @@ class Ingredient(models.Model):
     ])
     vendor = models.CharField(max_length=100, blank=True, null=True)  # ✅ shop
     notes = models.TextField(blank=True, null=True)  # ✅ ingredient_detail
+    original_stock_before_edit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(default=now, editable=False)
     
     def __str__(self):

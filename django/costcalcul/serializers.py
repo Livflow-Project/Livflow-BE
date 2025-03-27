@@ -50,8 +50,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         return data
         
     def update(self, instance, validated_data):
-        print(f"✅ update() 호출됨 - 이미지: {validated_data.get('recipe_img')}")
-
         instance.name = validated_data.get("name", instance.name)
         instance.sales_price_per_item = validated_data.get("sales_price_per_item", instance.sales_price_per_item)
         instance.production_quantity_per_batch = validated_data.get("production_quantity_per_batch", instance.production_quantity_per_batch)
@@ -61,14 +59,27 @@ class RecipeSerializer(serializers.ModelSerializer):
             instance.recipe_img = validated_data["recipe_img"]
             print(f"💾 이미지 저장됨: {instance.recipe_img}")
 
+        # ✅ 재료 구매량 변경 시, 기존 값 백업
+        ingredients_data = validated_data.get("ingredients", [])
+        for ing in ingredients_data:
+            ingredient_id = ing.get("ingredient_id")
+            purchase_quantity = ing.get("purchase_quantity")
+
+            if ingredient_id and purchase_quantity is not None:
+                ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+                new_qty = Decimal(str(purchase_quantity))
+                old_qty = ingredient.purchase_quantity
+
+                if new_qty < old_qty:
+                    print(f"📦 재료 '{ingredient.name}' 구매량 감소 감지 → 백업 실행")
+                    ingredient.original_stock_before_edit = old_qty
+                    ingredient.purchase_quantity = new_qty
+                    ingredient.save()
+
         instance.save()
         return instance
-
-
-        
         
     def create(self, validated_data):
-        print("✅ create() 호출됨")
         ingredients_data = validated_data.pop('ingredients', [])  
         recipe = Recipe.objects.create(**validated_data)
 
@@ -78,8 +89,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
             required_amount = Decimal(str(ingredient_data["quantity_used"]))
             
-            print(f"🔍 Ingredient: {ingredient.name}, Unit Cost: {ingredient.unit_cost}, Required Amount: {required_amount}")  # ✅ 디버깅
-
             inventory, created = Inventory.objects.get_or_create(
                 ingredient=ingredient,
                 defaults={"remaining_stock": ingredient.purchase_quantity}
@@ -102,8 +111,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 "unit": unit
             })
 
-        print(f"📝 Ingredient Costs List: {ingredient_costs}")  # ✅ ingredient_costs 리스트 확인
-
         # ✅ 원가 계산 후 DB에 저장
         cost_data = calculate_recipe_cost(
             ingredients=ingredient_costs,
@@ -111,7 +118,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             production_quantity_per_batch=recipe.production_quantity_per_batch  
         )
 
-        print(f"Before Save: {cost_data['total_material_cost']}, {cost_data['cost_per_item']}")  # ✅ 값 확인
 
         recipe.total_ingredient_cost = Decimal(str(cost_data["total_material_cost"]))
         recipe.production_cost = Decimal(str(cost_data["cost_per_item"]))
@@ -123,7 +129,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             )
 
         updated_recipe = Recipe.objects.get(id=recipe.id)
-        print(f"[DB Stored] total_ingredient_cost: {updated_recipe.total_ingredient_cost}, production_cost: {updated_recipe.production_cost}")
 
         return updated_recipe  # ✅ 시리얼라이저에 반영
 
