@@ -108,13 +108,12 @@ class StoreRecipeDetailView(APIView):
         ingredients = RecipeItem.objects.filter(recipe=recipe)
 
 
-        print(f"🧾 재료: {ingredient.name}, 저장된 사용량: {required_amount}")
-        print(f"🔍 구매량: {ingredient.purchase_quantity}, 기존 구매량: {ingredient.original_stock_before_edit}")
         ingredients_data = []
         for item in ingredients:
             ingredient = item.ingredient
             required_amount = item.quantity_used
 
+            # ✅ 여기에 있어야 함!
             print(f"🧾 재료: {ingredient.name}, 저장된 사용량: {required_amount}")
             print(f"🔍 구매량: {ingredient.purchase_quantity}, 기존 구매량: {ingredient.original_stock_before_edit}")
 
@@ -134,6 +133,7 @@ class StoreRecipeDetailView(APIView):
                 "ingredient_id": str(ingredient.id),
                 "required_amount": float(required_amount)
             })
+
 
 
         # 이미지 예외 처리
