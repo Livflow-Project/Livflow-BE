@@ -115,6 +115,9 @@ class StoreRecipeDetailView(APIView):
             ingredient = item.ingredient
             required_amount = item.quantity_used
 
+            print(f"🧾 재료: {ingredient.name}, 저장된 사용량: {required_amount}")
+            print(f"🔍 구매량: {ingredient.purchase_quantity}, 기존 구매량: {ingredient.original_stock_before_edit}")
+
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
             if inventory:
                 original_stock = Decimal(str(ingredient.purchase_quantity))
@@ -123,7 +126,6 @@ class StoreRecipeDetailView(APIView):
 
                 print(f"📉 used_stock: {used_stock}")
 
-                # ✅ '리셋' 판단 기준 추가: 구매량이 기존보다 줄었는가?
                 if ingredient.purchase_quantity < ingredient.original_stock_before_edit:
                     print("🌀 구매량 감소 감지 → required_amount = 0 처리")
                     required_amount = Decimal("0.0")
@@ -132,6 +134,7 @@ class StoreRecipeDetailView(APIView):
                 "ingredient_id": str(ingredient.id),
                 "required_amount": float(required_amount)
             })
+
 
         # 이미지 예외 처리
         recipe_img_url = None
