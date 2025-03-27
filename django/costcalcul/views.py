@@ -217,12 +217,20 @@ class StoreRecipeDetailView(APIView):
                 print(f"📦 이전 구매량 추정: {estimated_old_capacity}, 현재 구매량: {current_capacity}")
                 print(f"📏 기존 required_amount: {required_amount}, 총 사용량: {total_used}")
 
+                # ✅ 백업이 안 되어 있다면 현재 값을 백업
+                if ingredient.original_stock_before_edit == 0 and ingredient.purchase_quantity > 0:
+                    print(f"📝 original_stock_before_edit 백업: {ingredient.purchase_quantity}")
+                    ingredient.original_stock_before_edit = ingredient.purchase_quantity
+                    ingredient.save()
+
+                # ✅ 초기화 조건
                 if current_capacity < estimated_old_capacity and required_amount != 0 and total_used == 0:
                     print("⚠️ 조건 충족 → required_amount 초기화")
                     required_amount = Decimal("0.0")
 
             ing["required_amount"] = float(required_amount)
             updated_ingredients.append(ing)
+
 
         request_data["ingredients"] = updated_ingredients
 
