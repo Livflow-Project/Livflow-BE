@@ -121,16 +121,15 @@ class StoreRecipeDetailView(APIView):
 
                 print(f"📉 used_stock: {used_stock}")
 
-                if used_stock == 0:
-                    print("⚠️ 사용 이력 없음 → required_amount 무조건 0 처리")
+                # ✅ 근사값 비교로 수정
+                if used_stock <= Decimal("0.0001"):
+                    print("⚠️ 사용 이력 거의 없음 → required_amount 무조건 0 처리")
                     required_amount = Decimal("0.0")
-
 
             ingredients_data.append({
                 "ingredient_id": str(ingredient.id),
                 "required_amount": float(required_amount)
             })
-
 
         # 이미지 예외 처리 추가
         recipe_img_url = None
@@ -143,12 +142,13 @@ class StoreRecipeDetailView(APIView):
             "recipe_name": recipe.name,
             "recipe_cost": recipe.sales_price_per_item,
             "recipe_img": recipe.recipe_img.url if recipe.recipe_img else None, 
-            "is_favorites": recipe.is_favorites,  # 항상 true로 설정
-            "ingredients": ingredients_data,  # 필요한 필드만 유지
+            "is_favorites": recipe.is_favorites,
+            "ingredients": ingredients_data,
             "production_quantity": recipe.production_quantity_per_batch,
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
 
 
     @swagger_auto_schema(
