@@ -59,25 +59,32 @@ class RecipeSerializer(serializers.ModelSerializer):
             instance.recipe_img = validated_data["recipe_img"]
             print(f"💾 이미지 저장됨: {instance.recipe_img}")
 
-        # ✅ 재료 구매량 변경 시, 기존 값 백업
+        # ✅ 재료 구매량 변경 시, 기존 값 백업 (프론트에서 purchase_quantity 없이도 작동)
         ingredients_data = validated_data.get("ingredients", [])
         for ing in ingredients_data:
             ingredient_id = ing.get("ingredient_id")
-            purchase_quantity = ing.get("purchase_quantity")
+            required_amount = Decimal(str(ing.get("required_amount", 0)))
 
-            if ingredient_id and purchase_quantity is not None:
+            if ingredient_id:
                 ingredient = get_object_or_404(Ingredient, id=ingredient_id)
-                new_qty = Decimal(str(purchase_quantity))
-                old_qty = ingredient.purchase_quantity
 
-                if new_qty < old_qty:
-                    print(f"📦 재료 '{ingredient.name}' 구매량 감소 감지 → 백업 실행")
-                    ingredient.original_stock_before_edit = old_qty
-                    ingredient.purchase_quantity = new_qty
-                    ingredient.save()
+                # DB에서 최신 값을 불러와 비교
+                latest_ingredient = Ingredient.objects.get(id=ingredient_id)
+                old_qty = latest_ingredient.original_stock_before_edit
+                current_qty = latest_ingredient.purchase_quantity
+
+                print(f"📌 기존 original_stock: {old_qty}, 현재 구매량: {current_qty}")
+
+                if old_qty and current_qty < old_qty:
+                    print("⚠️ original_stock 감소 감지! used_stock 초기화 적용")
+                    required_amount = Decimal("0.0")
+
+                # required_amount 반영
+                ing["required_amount"] = float(required_amount)
 
         instance.save()
         return instance
+
         
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
