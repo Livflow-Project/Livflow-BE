@@ -86,6 +86,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredient_costs = []  # ✅ 원가 계산 리스트
 
         for ingredient_data in ingredients_data:
+            print("🧾 [CREATE] ingredient_data:", ingredient_data)
             ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
             required_amount = Decimal(str(ingredient_data["quantity_used"]))
             
