@@ -49,9 +49,14 @@ class StoreRecipeListView(APIView):
         # deepcopy로 QueryDict → dict 완전 변환
         request_data = deepcopy(request.data)
 
-        ingredients = request_data.get("ingredients", [])
+        ingredients = request_data.get("ingredients")  # 기본값 없이 받음
+
         print("🧪 [디버깅] ingredients 타입:", type(ingredients))
         print("🧪 [디버깅] ingredients 내용:", ingredients)
+
+        # ✅ None인 경우 빈 리스트 처리
+        if ingredients is None:
+            ingredients = []
 
         # 문자열인 경우 → JSON 파싱
         if isinstance(ingredients, str):
