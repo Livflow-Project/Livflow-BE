@@ -90,19 +90,27 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredients', [])  
         recipe = Recipe.objects.create(**validated_data)
 
-        ingredient_costs = []  # ✅ 원가 계산 리스트
+        print(f"🍽️ [레시피 생성] 이름: {recipe.name}, 총 재료 수: {len(ingredients_data)}")
 
-        for ingredient_data in ingredients_data:
-            print("🧾 [CREATE] ingredient_data:", ingredient_data)
-            ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
-            required_amount = Decimal(str(ingredient_data["quantity_used"]))
-            
+        ingredient_costs = []
+
+        for idx, ingredient_data in enumerate(ingredients_data, 1):
+            print(f"\n🧾 [#{idx}] ingredient_data:", ingredient_data)
+
+            try:
+                ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
+                print(f"✅ Ingredient 조회 성공: {ingredient.name}")
+            except:
+                print(f"❌ Ingredient 조회 실패: ID = {ingredient_data.get('ingredient_id')}")
+                continue
+
+            required_amount = Decimal(str(ingredient_data.get("quantity_used", 0)))
+            unit = ingredient_data.get("unit", ingredient.unit)
+
             inventory, created = Inventory.objects.get_or_create(
                 ingredient=ingredient,
                 defaults={"remaining_stock": ingredient.purchase_quantity}
             )
-
-            unit = ingredient_data.get("unit", ingredient.unit)
 
             RecipeItem.objects.create(
                 recipe=recipe,
@@ -110,6 +118,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 quantity_used=required_amount,
                 unit=unit
             )
+            print(f"✅ RecipeItem 생성 완료: {ingredient.name}, 사용량: {required_amount}, 단위: {unit}")
 
             ingredient_costs.append({
                 "ingredient_id": str(ingredient.id),
