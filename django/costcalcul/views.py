@@ -42,7 +42,6 @@ class StoreRecipeListView(APIView):
         responses={201: "레시피 생성 성공", 400: "유효성 검사 실패"}
     )
 
-
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
         
@@ -69,9 +68,13 @@ class StoreRecipeListView(APIView):
         if isinstance(ingredients, dict):
             ingredients = [ingredients]
 
-        # 이중 리스트 처리
-        if isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
+        # 이중 리스트 처리 - 더 엄격하고 안전한 방식
+        while isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
             ingredients = ingredients[0]
+
+        # 최종적으로 리스트인지 확인
+        if not isinstance(ingredients, list):
+            return Response({"error": "ingredients는 리스트 형태여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         request_data["ingredients"] = ingredients
         print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
