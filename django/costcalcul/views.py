@@ -101,13 +101,14 @@ class StoreRecipeListView(APIView):
                 print(f"✅ [5단계-{i}] 정제된 데이터:")
                 pprint(cleaned)
 
-        # ✅ 이중 리스트 제거 후 cleaned 데이터로 업데이트
-        request_data['ingredients'] = cleaned_ingredients
+        # ✅ ingredients만 깔끔하게 정제한 상태로 serializer에 넘길 복사본 생성
+        serializer_input = request_data.copy()
+        serializer_input.setlist("ingredients", [cleaned_ingredients])  # 리스트로 묶어야 DRF에서 many=True로 인식됨
 
-        print("\n🧪 [6단계] 최종 serializer로 넘길 request_data:")
-        pprint(request_data)
+        print("\n🧪 [6단계] 최종 serializer로 넘길 serializer_input:")
+        pprint(serializer_input)
 
-        serializer = RecipeSerializer(data=request_data)
+        serializer = RecipeSerializer(data=serializer_input, files=request.FILES)
         if serializer.is_valid():
             with transaction.atomic():
                 recipe = serializer.save(
@@ -131,6 +132,7 @@ class StoreRecipeListView(APIView):
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
+        print("🚨 serializer.errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
