@@ -50,6 +50,8 @@ class StoreRecipeListView(APIView):
         request_data = deepcopy(request.data)
 
         ingredients = request_data.get("ingredients", [])
+        print("🧪 [디버깅] ingredients 타입:", type(ingredients))
+        print("🧪 [디버깅] ingredients 내용:", ingredients)
 
         # 문자열인 경우 → JSON 파싱
         if isinstance(ingredients, str):
