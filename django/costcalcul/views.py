@@ -107,8 +107,11 @@ class StoreRecipeListView(APIView):
         request_data['ingredients'] = cleaned_ingredients
         print("\n🧪 [6단계] 최종 serializer로 넘길 request_data:")
         pprint(request_data)
+        # ✅ 여기서 dict 변환!
+        final_data = dict(request_data)
+        final_data["ingredients"] = cleaned_ingredients  # 다시 한 번 확실히 반영
 
-        serializer = RecipeSerializer(data=request_data)
+        serializer = RecipeSerializer(data=final_data)
         if serializer.is_valid():
             with transaction.atomic():
                 recipe = serializer.save(
