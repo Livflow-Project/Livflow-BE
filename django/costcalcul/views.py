@@ -56,8 +56,13 @@ class StoreRecipeListView(APIView):
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # 🔧 이중 리스트일 경우 풀어주기
+        if isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
+            ingredients = ingredients[0]
+
         request_data["ingredients"] = ingredients
         print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
+        
         serializer = RecipeSerializer(data=request_data)
         if serializer.is_valid():
             with transaction.atomic():
