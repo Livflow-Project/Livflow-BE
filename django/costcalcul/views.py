@@ -12,7 +12,7 @@ from drf_yasg.utils import swagger_auto_schema
 from decimal import Decimal
 import json
 from .utils import get_total_used_quantity
-
+from copy import deepcopy
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
@@ -42,27 +42,33 @@ class StoreRecipeListView(APIView):
         responses={201: "레시피 생성 성공", 400: "유효성 검사 실패"}
     )
 
+
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
-        # print(f"🔍 [레시피 저장 요청] store_id: {store_id}, 데이터: {request.data}")
+        
+        # deepcopy로 QueryDict → dict 완전 변환
+        request_data = deepcopy(request.data)
 
-        request_data = request.data.copy()
-
-        # `ingredients`가 문자열이면 JSON 변환
         ingredients = request_data.get("ingredients", [])
+
+        # 문자열인 경우 → JSON 파싱
         if isinstance(ingredients, str):
             try:
                 ingredients = json.loads(ingredients)
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 🔧 이중 리스트일 경우 풀어주기
+        # dict인 경우 → 리스트로 감싸기
+        if isinstance(ingredients, dict):
+            ingredients = [ingredients]
+
+        # 이중 리스트 처리
         if isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
             ingredients = ingredients[0]
 
         request_data["ingredients"] = ingredients
         print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
-        
+
         serializer = RecipeSerializer(data=request_data)
         if serializer.is_valid():
             with transaction.atomic():
@@ -71,30 +77,24 @@ class StoreRecipeListView(APIView):
                     is_favorites=str(request.data.get("is_favorites", "false")).lower() == "true"
                 )
 
-                # print(f"🔍 Step 1 - Recipe Created: {recipe.id}")
+                recipe_img_url = recipe.recipe_img.url if recipe.recipe_img and recipe.recipe_img.name else None
 
-                # 이미지 예외 처리 추가
-                recipe_img_url = None
-                if recipe.recipe_img and recipe.recipe_img.name: 
-                    recipe_img_url = recipe.recipe_img.url
-
-                # 빈 배열일 경우 자동으로 처리
                 response_data = {
                     "id": str(recipe.id),
                     "recipe_name": recipe.name,
                     "recipe_cost": recipe.sales_price_per_item,
-                    "recipe_img": recipe_img_url,  
+                    "recipe_img": recipe_img_url,
                     "is_favorites": recipe.is_favorites,
                     "production_quantity": recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(recipe.total_ingredient_cost),
                     "production_cost": float(recipe.production_cost),
-                    "ingredients": ingredients,  # 자동으로 빈 배열이 들어감
+                    "ingredients": ingredients,
                 }
 
-                # print(f"📌 Final API Response: {response_data}")
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
