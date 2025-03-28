@@ -60,7 +60,7 @@ class StoreRecipeListView(APIView):
         # 문자열인 경우 → JSON 파싱
         if isinstance(ingredients, str):
             try:
-                # 문자열 내용을 먼저 파싱
+                # 문자열을 JSON으로 파싱
                 ingredients = json.loads(ingredients)
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
@@ -77,16 +77,24 @@ class StoreRecipeListView(APIView):
         if not isinstance(ingredients, list):
             return Response({"error": "ingredients는 리스트 형태여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 중첩된 문자열 처리
-        try:
-            ingredients = [
-                json.loads(item) if isinstance(item, str) else item 
-                for item in ingredients
-            ]
-        except json.JSONDecodeError:
-            pass
+        # 각 ingredient에 대해 필요한 키 보장
+        cleaned_ingredients = []
+        for ing in ingredients:
+            if isinstance(ing, str):
+                try:
+                    ing = json.loads(ing)
+                except json.JSONDecodeError:
+                    continue
+            
+            # ingredient_id와 required_amount 키 확인 및 정규화
+            if 'ingredient_id' in ing and 'required_amount' in ing:
+                cleaned_ingredients.append({
+                    'ingredient_id': str(ing['ingredient_id']),
+                    'required_amount': ing['required_amount']
+                })
 
-        request_data["ingredients"] = ingredients
+        # 정리된 ingredients로 대체
+        request_data['ingredients'] = cleaned_ingredients
         print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
 
         serializer = RecipeSerializer(data=request_data)
@@ -108,15 +116,12 @@ class StoreRecipeListView(APIView):
                     "production_quantity": recipe.production_quantity_per_batch,
                     "total_ingredient_cost": float(recipe.total_ingredient_cost),
                     "production_cost": float(recipe.production_cost),
-                    "ingredients": ingredients,
+                    "ingredients": cleaned_ingredients,
                 }
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
 
 # 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
