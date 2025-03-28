@@ -124,7 +124,10 @@ class StoreRecipeDetailView(APIView):
                 used_stock = original_stock - remaining_stock
 
                 print(f"📉 used_stock: {used_stock}")
-
+                
+                #used_stock 프론트값 일치시키기
+                #required_amount = used_stock
+                
                 if ingredient.purchase_quantity < ingredient.original_stock_before_edit:
                     print("🌀 구매량 감소 감지 → required_amount = 0 처리")
                     required_amount = Decimal("0.0")
