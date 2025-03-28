@@ -49,7 +49,7 @@ class StoreRecipeListView(APIView):
         # deepcopy로 QueryDict → dict 완전 변환
         request_data = deepcopy(request.data)
 
-        ingredients = request_data.get("ingredients")  # 기본값 없이 받음
+        ingredients = request_data.get("ingredients", None)  # 기본값 없이 받음
 
         print("🧪 [디버깅] ingredients 타입:", type(ingredients))
         print("🧪 [디버깅] ingredients 내용:", ingredients)
