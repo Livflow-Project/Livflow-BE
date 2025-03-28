@@ -108,7 +108,9 @@ class StoreRecipeListView(APIView):
         print("\n🧪 [6단계] 최종 serializer로 넘길 serializer_input:")
         pprint(serializer_input)
 
-        serializer = RecipeSerializer(data=serializer_input, files=request.FILES)
+        # ✅ DRF가 내부적으로 FILES까지 처리함
+        serializer = RecipeSerializer(data=serializer_input)
+
         if serializer.is_valid():
             with transaction.atomic():
                 recipe = serializer.save(
