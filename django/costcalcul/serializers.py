@@ -149,19 +149,20 @@ class RecipeSerializer(serializers.ModelSerializer):
         return getattr(obj, "production_cost", 0)
 
     def to_representation(self, instance):
-        """🚀 응답 데이터에서 `ingredients` 배열을 포함"""
         data = super().to_representation(instance)
-        data["recipe_cost"] = data["recipe_cost"] if data["recipe_cost"] is not None else 0  # ✅ None → 0 변환
+        data["recipe_cost"] = data["recipe_cost"] if data["recipe_cost"] is not None else 0
 
-        # ✅ `ingredients` 필드 추가 (모델 객체를 가져오도록 수정)
-        recipe_items = RecipeItem.objects.filter(recipe=instance)  # 🔥 모델 객체 가져오기
+        recipe_items = RecipeItem.objects.filter(recipe=instance)
+        print(f"📌 [to_representation] 연결된 RecipeItem 개수: {recipe_items.count()}")
+        for item in recipe_items:
+            print(f"🔗 {item.ingredient.name} - {item.quantity_used}")
 
         data["ingredients"] = [
             {
                 "ingredient_id": str(item.ingredient.id),
                 "required_amount": item.quantity_used
             }
-            for item in recipe_items  # 🔥 모델 인스턴스를 사용하도록 수정
+            for item in recipe_items
         ]
 
         return data
