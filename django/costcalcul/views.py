@@ -47,8 +47,6 @@ class StoreRecipeListView(APIView):
 
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
-
-        # ✅ deepcopy 후 dict로 강제 변환 (QueryDict → dict)
         request_data = deepcopy(request.data)
         ingredients = request_data.get("ingredients", [])
 
@@ -103,12 +101,12 @@ class StoreRecipeListView(APIView):
                 print(f"✅ [5단계-{i}] 정제된 데이터:")
                 pprint(cleaned)
 
-        # ✅ 최종 반영
+        # ✅ 이중 리스트 제거 후 cleaned 데이터로 업데이트
         request_data['ingredients'] = cleaned_ingredients
+
         print("\n🧪 [6단계] 최종 serializer로 넘길 request_data:")
         pprint(request_data)
 
-        # ❌ dict 변환 없이 그대로 사용해야 각 필드가 문자열로 유지됨!
         serializer = RecipeSerializer(data=request_data)
         if serializer.is_valid():
             with transaction.atomic():
@@ -133,6 +131,7 @@ class StoreRecipeListView(APIView):
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
