@@ -107,7 +107,7 @@ class StoreRecipeDetailView(APIView):
         """ 특정 레시피 상세 조회 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
-
+        print(f"📦 연결된 재료 개수: {ingredients.count()}")
 
         ingredients_data = []
         for item in ingredients:
