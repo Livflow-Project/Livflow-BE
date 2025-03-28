@@ -13,6 +13,8 @@ from decimal import Decimal
 import json
 from .utils import get_total_used_quantity
 from copy import deepcopy
+from pprint import pprint
+
 
 # ✅ 특정 상점의 모든 레시피 조회
 class StoreRecipeListView(APIView):
@@ -45,57 +47,63 @@ class StoreRecipeListView(APIView):
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
         
-        # deepcopy로 QueryDict → dict 완전 변환
         request_data = deepcopy(request.data)
+        ingredients = request_data.get("ingredients", [])
 
-        ingredients = request_data.get("ingredients", None)  # 기본값 없이 받음
+        print("\n🧪 [1단계] 원본 ingredients 타입:", type(ingredients))
+        print("🧪 [1단계] 원본 ingredients 내용:")
+        pprint(ingredients)
 
-        print("🧪 [디버깅] ingredients 타입:", type(ingredients))
-        print("🧪 [디버깅] ingredients 내용:", ingredients)
-
-        # ✅ None인 경우 빈 리스트 처리
         if ingredients is None:
             ingredients = []
 
-        # 문자열인 경우 → JSON 파싱
         if isinstance(ingredients, str):
             try:
-                # 문자열을 JSON으로 파싱
                 ingredients = json.loads(ingredients)
+                print("\n🔍 [2단계] 문자열 → JSON 파싱 성공:")
+                pprint(ingredients)
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # dict인 경우 → 리스트로 감싸기
         if isinstance(ingredients, dict):
             ingredients = [ingredients]
+            print("\n📦 [3단계] dict → 리스트로 변환:")
+            pprint(ingredients)
 
-        # 이중 리스트 처리 - 더 엄격하고 안전한 방식
         while isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
             ingredients = ingredients[0]
+            print("\n🔄 [4단계] 이중 리스트 제거:")
+            pprint(ingredients)
 
-        # 최종적으로 리스트인지 확인
         if not isinstance(ingredients, list):
             return Response({"error": "ingredients는 리스트 형태여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 각 ingredient에 대해 필요한 키 보장
         cleaned_ingredients = []
-        for ing in ingredients:
+        for i, ing in enumerate(ingredients):
+            print(f"\n🔧 [5단계-{i}] 원본 ing:")
+            pprint(ing)
+
             if isinstance(ing, str):
                 try:
                     ing = json.loads(ing)
+                    print(f"✅ [5단계-{i}] 문자열 → JSON 파싱 성공:")
+                    pprint(ing)
                 except json.JSONDecodeError:
+                    print(f"❌ [5단계-{i}] JSON 파싱 실패")
                     continue
             
-            # ingredient_id와 required_amount 키 확인 및 정규화
             if 'ingredient_id' in ing and 'required_amount' in ing:
-                cleaned_ingredients.append({
+                cleaned = {
                     'ingredient_id': str(ing['ingredient_id']),
                     'required_amount': ing['required_amount']
-                })
+                }
+                cleaned_ingredients.append(cleaned)
+                print(f"✅ [5단계-{i}] 정제된 데이터:")
+                pprint(cleaned)
 
-        # 정리된 ingredients로 대체
         request_data['ingredients'] = cleaned_ingredients
-        print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
+        print("\n🧪 [6단계] 최종 serializer로 넘길 request_data:")
+        pprint(request_data)
 
         serializer = RecipeSerializer(data=request_data)
         if serializer.is_valid():
@@ -122,6 +130,9 @@ class StoreRecipeListView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
 # 특정 레시피 상세 조회
 class StoreRecipeDetailView(APIView):
