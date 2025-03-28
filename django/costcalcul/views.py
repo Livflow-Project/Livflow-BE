@@ -45,41 +45,34 @@ class StoreRecipeListView(APIView):
 
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
+        
+        # deepcopy로 QueryDict → dict 완전 변환
+        request_data = deepcopy(request.data)
 
-        # ✅ deepcopy 후 dict로 강제 변환 (QueryDict → dict)
-        request_data = dict(deepcopy(request.data))
+        ingredients = request_data.get("ingredients", None)  # 기본값 없이 받음
 
-        ingredients = request_data.get("ingredients", None)
         print("🧪 [디버깅] ingredients 타입:", type(ingredients))
         print("🧪 [디버깅] ingredients 내용:", ingredients)
 
-        # ✅ None인 경우 빈 리스트
+        # ✅ None인 경우 빈 리스트 처리
         if ingredients is None:
             ingredients = []
 
-        # ✅ 리스트 안에 JSON 문자열이 들어있는 경우 처리
-        if isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], str):
-            try:
-                ingredients = json.loads(ingredients[0])
-            except json.JSONDecodeError:
-                return Response({"error": "ingredients 내부 JSON 파싱 실패"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # ✅ 문자열이면 JSON 파싱
-        elif isinstance(ingredients, str):
+        # 문자열인 경우 → JSON 파싱
+        if isinstance(ingredients, str):
             try:
                 ingredients = json.loads(ingredients)
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ dict면 리스트로 감싸기
+        # dict인 경우 → 리스트로 감싸기
         if isinstance(ingredients, dict):
             ingredients = [ingredients]
 
-        # ✅ 이중 리스트 풀기
+        # 이중 리스트 처리
         if isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
             ingredients = ingredients[0]
 
-        # 🔄 최종 반영
         request_data["ingredients"] = ingredients
         print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
 
