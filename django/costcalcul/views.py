@@ -60,6 +60,7 @@ class StoreRecipeListView(APIView):
         # 문자열인 경우 → JSON 파싱
         if isinstance(ingredients, str):
             try:
+                # 문자열 내용을 먼저 파싱
                 ingredients = json.loads(ingredients)
             except json.JSONDecodeError:
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
@@ -75,6 +76,15 @@ class StoreRecipeListView(APIView):
         # 최종적으로 리스트인지 확인
         if not isinstance(ingredients, list):
             return Response({"error": "ingredients는 리스트 형태여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 중첩된 문자열 처리
+        try:
+            ingredients = [
+                json.loads(item) if isinstance(item, str) else item 
+                for item in ingredients
+            ]
+        except json.JSONDecodeError:
+            pass
 
         request_data["ingredients"] = ingredients
         print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
