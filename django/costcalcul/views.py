@@ -47,70 +47,59 @@ class StoreRecipeListView(APIView):
 
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
-        request_data = deepcopy(request.data)
-        ingredients = request_data.get("ingredients", [])
-
-        print("\n🧪 [1단계] 원본 ingredients 타입:", type(ingredients))
+        raw_ingredients = request.data.get("ingredients")
+        print("\n🧪 [1단계] 원본 ingredients 타입:", type(raw_ingredients))
         print("🧪 [1단계] 원본 ingredients 내용:")
-        pprint(ingredients)
+        pprint(raw_ingredients)
 
-        if ingredients is None:
-            ingredients = []
+        # ✅ 문자열로 오면 파싱
+        try:
+            if isinstance(raw_ingredients, str):
+                ingredients = json.loads(raw_ingredients)
+            else:
+                ingredients = raw_ingredients or []
+        except json.JSONDecodeError:
+            return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=400)
 
-        if isinstance(ingredients, str):
-            try:
-                ingredients = json.loads(ingredients)
-                print("\n🔍 [2단계] 문자열 → JSON 파싱 성공:")
-                pprint(ingredients)
-            except json.JSONDecodeError:
-                return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
-
+        # ✅ dict로 오면 리스트로 변환
         if isinstance(ingredients, dict):
             ingredients = [ingredients]
-            print("\n📦 [3단계] dict → 리스트로 변환:")
-            pprint(ingredients)
 
+        # ✅ 이중 리스트 제거
         while isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], list):
             ingredients = ingredients[0]
-            print("\n🔄 [4단계] 이중 리스트 제거:")
-            pprint(ingredients)
 
         if not isinstance(ingredients, list):
-            return Response({"error": "ingredients는 리스트 형태여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "ingredients는 리스트 형태여야 합니다."}, status=400)
 
+        # ✅ 재료 정제
         cleaned_ingredients = []
-        for i, ing in enumerate(ingredients):
-            print(f"\n🔧 [5단계-{i}] 원본 ing:")
-            pprint(ing)
-
+        for ing in ingredients:
             if isinstance(ing, str):
                 try:
                     ing = json.loads(ing)
-                    print(f"✅ [5단계-{i}] 문자열 → JSON 파싱 성공:")
-                    pprint(ing)
                 except json.JSONDecodeError:
-                    print(f"❌ [5단계-{i}] JSON 파싱 실패")
                     continue
-
             if 'ingredient_id' in ing and 'required_amount' in ing:
-                cleaned = {
+                cleaned_ingredients.append({
                     'ingredient_id': str(ing['ingredient_id']),
                     'required_amount': ing['required_amount']
-                }
-                cleaned_ingredients.append(cleaned)
-                print(f"✅ [5단계-{i}] 정제된 데이터:")
-                pprint(cleaned)
+                })
 
-        # ✅ ingredients만 깔끔하게 정제한 상태로 serializer에 넘길 복사본 생성
-        serializer_input = request_data.copy()
-        serializer_input.setlist("ingredients", [cleaned_ingredients])  # 리스트로 묶어야 DRF에서 many=True로 인식됨
+        # ✅ 최종 serializer 데이터 구성
+        serializer_input = {
+            "recipe_name": request.data.get("recipe_name"),
+            "recipe_cost": request.data.get("recipe_cost"),
+            "is_favorites": request.data.get("is_favorites"),
+            "production_quantity": request.data.get("production_quantity"),
+            "ingredients": cleaned_ingredients,
+            "recipe_img": request.FILES.get("recipe_img")
+        }
 
-        print("\n🧪 [6단계] 최종 serializer로 넘길 serializer_input:")
+        print("\n🧪 [최종 serializer_input]:")
         pprint(serializer_input)
 
-        # ✅ DRF가 내부적으로 FILES까지 처리함
         serializer = RecipeSerializer(data=serializer_input)
-
         if serializer.is_valid():
             with transaction.atomic():
                 recipe = serializer.save(
@@ -120,7 +109,7 @@ class StoreRecipeListView(APIView):
 
                 recipe_img_url = recipe.recipe_img.url if recipe.recipe_img and recipe.recipe_img.name else None
 
-                response_data = {
+                return Response({
                     "id": str(recipe.id),
                     "recipe_name": recipe.name,
                     "recipe_cost": recipe.sales_price_per_item,
@@ -130,12 +119,10 @@ class StoreRecipeListView(APIView):
                     "total_ingredient_cost": float(recipe.total_ingredient_cost),
                     "production_cost": float(recipe.production_cost),
                     "ingredients": cleaned_ingredients,
-                }
-
-                return Response(response_data, status=status.HTTP_201_CREATED)
+                }, status=201)
 
         print("🚨 serializer.errors:", serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=400)
 
 
 
