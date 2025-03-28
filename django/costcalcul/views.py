@@ -44,10 +44,12 @@ class StoreRecipeListView(APIView):
         responses={201: "레시피 생성 성공", 400: "유효성 검사 실패"}
     )
 
+
     def post(self, request, store_id):
         """✅ 새로운 레시피 추가"""
-        
-        request_data = deepcopy(request.data)
+
+        # ✅ deepcopy 후 dict로 강제 변환 (QueryDict → dict)
+        request_data = dict(deepcopy(request.data))
         ingredients = request_data.get("ingredients", [])
 
         print("\n🧪 [1단계] 원본 ingredients 타입:", type(ingredients))
@@ -91,7 +93,7 @@ class StoreRecipeListView(APIView):
                 except json.JSONDecodeError:
                     print(f"❌ [5단계-{i}] JSON 파싱 실패")
                     continue
-            
+
             if 'ingredient_id' in ing and 'required_amount' in ing:
                 cleaned = {
                     'ingredient_id': str(ing['ingredient_id']),
@@ -101,6 +103,7 @@ class StoreRecipeListView(APIView):
                 print(f"✅ [5단계-{i}] 정제된 데이터:")
                 pprint(cleaned)
 
+        # ✅ 최종 반영
         request_data['ingredients'] = cleaned_ingredients
         print("\n🧪 [6단계] 최종 serializer로 넘길 request_data:")
         pprint(request_data)
