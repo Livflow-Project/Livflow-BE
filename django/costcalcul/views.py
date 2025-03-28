@@ -57,8 +57,15 @@ class StoreRecipeListView(APIView):
         if ingredients is None:
             ingredients = []
 
+        # ✅ 리스트 안에 JSON 문자열이 들어있는 경우 처리
+        if isinstance(ingredients, list) and len(ingredients) == 1 and isinstance(ingredients[0], str):
+            try:
+                ingredients = json.loads(ingredients[0])
+            except json.JSONDecodeError:
+                return Response({"error": "ingredients 내부 JSON 파싱 실패"}, status=status.HTTP_400_BAD_REQUEST)
+
         # ✅ 문자열이면 JSON 파싱
-        if isinstance(ingredients, str):
+        elif isinstance(ingredients, str):
             try:
                 ingredients = json.loads(ingredients)
             except json.JSONDecodeError:
