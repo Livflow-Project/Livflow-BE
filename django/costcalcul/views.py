@@ -57,7 +57,7 @@ class StoreRecipeListView(APIView):
                 return Response({"error": "올바른 JSON 형식의 ingredients를 보내야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         request_data["ingredients"] = ingredients
-
+        print("🧪 [디버깅] 최종 serializer로 넘길 request_data:", request_data)
         serializer = RecipeSerializer(data=request_data)
         if serializer.is_valid():
             with transaction.atomic():

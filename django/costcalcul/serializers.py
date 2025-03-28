@@ -88,6 +88,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
+        print(f"🔍 [validated_data]: {validated_data}")
+        print(f"🔍 [ingredients_data]: {ingredients_data}")
         recipe = Recipe.objects.create(**validated_data)
 
         print(f"🍽️ [레시피 생성] 이름: {recipe.name}, 총 재료 수: {len(ingredients_data)}")
