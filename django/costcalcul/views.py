@@ -103,6 +103,7 @@ class StoreRecipeDetailView(APIView):
     )
 
     def get(self, request, store_id, recipe_id):
+        print("🚀 [레시피 GET] 요청 들어옴:", store_id, recipe_id)
         """ 특정 레시피 상세 조회 """
         recipe = get_object_or_404(Recipe, id=recipe_id, store_id=store_id)
         ingredients = RecipeItem.objects.filter(recipe=recipe)
