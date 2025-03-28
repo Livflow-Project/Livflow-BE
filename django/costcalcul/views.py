@@ -49,7 +49,7 @@ class StoreRecipeListView(APIView):
         """✅ 새로운 레시피 추가"""
 
         # ✅ deepcopy 후 dict로 강제 변환 (QueryDict → dict)
-        request_data = dict(deepcopy(request.data))
+        request_data = deepcopy(request.data)
         ingredients = request_data.get("ingredients", [])
 
         print("\n🧪 [1단계] 원본 ingredients 타입:", type(ingredients))
