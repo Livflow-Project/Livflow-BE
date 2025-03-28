@@ -108,7 +108,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://api.livflow.co.kr:8443",
     "http://localhost:5173",
     "http://localhost:8000",
-    "59.5.15.183"
+    "http://59.5.15.183",
 ]
 CORS_ALLOW_HEADERS = [
     "accept",
