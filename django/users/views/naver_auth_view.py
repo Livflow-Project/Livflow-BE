@@ -89,9 +89,10 @@ class NaverExchangeCodeForToken(APIView):
             print("✅ JWT 토큰 생성 완료")
 
             # ✅ Redis에 Refresh Token 저장
-            expires = datetime.fromtimestamp(access_token_obj['exp'])
-            store_refresh_token(user.id, refresh_token, expires)
-            print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires}s)")
+            expires_in = int(access_token_obj['exp'])
+            expires_at = datetime.fromtimestamp(expires_in)
+            store_refresh_token(user.id, refresh_token, expires_in)
+            print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
             
             # ✅ AccessToken 블랙리스트에 등록하기 위한 OutstandingToken 저장
             OutstandingToken.objects.get_or_create(
@@ -99,7 +100,7 @@ class NaverExchangeCodeForToken(APIView):
                 defaults={
                     'user': user,
                     'token': access_token,
-                    'expires_at': expires,
+                    'expires_at': expires_at,
                 }
             )
 

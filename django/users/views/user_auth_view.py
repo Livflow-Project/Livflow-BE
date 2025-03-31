@@ -124,6 +124,7 @@ class RefreshAccessTokenView(APIView):
         except (InvalidToken, TokenError):
             return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
 
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 class SocialLogout(APIView):
     authentication_classes = [CookieJWTAuthentication, JWTAuthentication]
@@ -150,15 +151,19 @@ class SocialLogout(APIView):
         if raw_token:
             try:
                 token = AccessToken(raw_token)
-                token.blacklist()  # ✅ 블랙리스트에 등록
-            except TokenError:
-                print("❌ 블랙리스트 추가 실패: 유효하지 않은 토큰")
+                jti = token['jti']
+                outstanding_token = OutstandingToken.objects.get(jti=jti)
+                BlacklistedToken.objects.get_or_create(token=outstanding_token)
+                print("✅ 액세스 토큰 블랙리스트에 등록 완료")
+            except Exception as e:
+                print(f"❌ 블랙리스트 추가 실패: {e}")
 
         response = Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
 
         # ✅ 쿠키 삭제 (쿠키 사용 시)
         response.delete_cookie("access_token", domain=".livflow.co.kr", path="/")
         return response
+
 
     
 from django.contrib.auth import get_user_model
