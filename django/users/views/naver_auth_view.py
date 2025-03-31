@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from users.utils import store_refresh_token  
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-
+from datetime import datetime
 
 
 # 로깅 설정
@@ -88,9 +88,10 @@ class NaverExchangeCodeForToken(APIView):
             refresh_token = str(refresh)
             print("✅ JWT 토큰 생성 완료")
 
-            expires_in = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())  
-            store_refresh_token(user.id, refresh_token, expires_in)
-            print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
+            # ✅ Redis에 Refresh Token 저장
+            expires = datetime.fromtimestamp(access_token_obj['exp'])
+            store_refresh_token(user.id, refresh_token, expires)
+            print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires}s)")
             
             # ✅ AccessToken 블랙리스트에 등록하기 위한 OutstandingToken 저장
             OutstandingToken.objects.get_or_create(
@@ -98,9 +99,10 @@ class NaverExchangeCodeForToken(APIView):
                 defaults={
                     'user': user,
                     'token': access_token,
-                    'expires_at': access_token_obj['exp'],
+                    'expires_at': expires,
                 }
             )
+
             
 
             # ✅ 응답 데이터 구성 (Bearer 방식)
