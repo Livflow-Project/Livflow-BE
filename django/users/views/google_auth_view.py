@@ -97,6 +97,7 @@ class GoogleExchangeCodeForToken(APIView):
 
             # ✅ Redis에 Refresh Token 저장
             expires_in = int(access_token_obj['exp'])
+            expires_at = datetime.fromtimestamp(expires_in)
             store_refresh_token(user.id, refresh_token, expires_in)
             print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
             
@@ -106,7 +107,7 @@ class GoogleExchangeCodeForToken(APIView):
                 defaults={
                     'user': user,
                     'token': access_token,
-                    'expires_at': expires_in,
+                    'expires_at': expires_at,
                 }
             )
 
