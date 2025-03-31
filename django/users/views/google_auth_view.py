@@ -95,25 +95,13 @@ class GoogleExchangeCodeForToken(APIView):
             store_refresh_token(user.id, refresh_token, expires_in)
             logger.info(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
 
-            # ✅ 응답 데이터 구성
-            response_data = {"access": access_token}
-            response = JsonResponse(response_data)
+            # ✅ 응답 데이터 구성 (Bearer 방식)
+            response_data = {
+                "access": access_token,
+                "refresh": refresh_token
+            }
+            return JsonResponse(response_data)
 
-            # ✅ 쿠키에 액세스 토큰 저장
-            response.set_cookie(
-                "access_token",
-                access_token,
-                #배포시 수정
-                #domain=".livflow.co.kr",
-                #httponly=True,
-                httponly=False,
-                secure=settings.SESSION_COOKIE_SECURE,
-                max_age=int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()),
-                samesite="Lax",
-            )
-            logger.info("✅ 액세스 토큰을 쿠키에 저장 완료")
-
-            return response
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Google OAuth 요청 실패: {str(e)}")

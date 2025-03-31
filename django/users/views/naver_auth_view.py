@@ -86,21 +86,13 @@ class NaverExchangeCodeForToken(APIView):
             store_refresh_token(user.id, refresh_token, expires_in)
             logger.info(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
 
-            response_data = {"access": access_token}
-            response = JsonResponse(response_data)
+            # ✅ 응답 데이터 구성 (Bearer 방식)
+            response_data = {
+                "access": access_token,
+                "refresh": refresh_token
+            }
+            return JsonResponse(response_data)
 
-            response.set_cookie(
-                "access_token",
-                access_token,
-                domain=".livflow.co.kr",
-                httponly=True,
-                secure=settings.SESSION_COOKIE_SECURE,
-                max_age=int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()),
-                samesite="Strict",
-            )
-            logger.info("✅ 액세스 토큰을 쿠키에 저장 완료")
-
-            return response
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Naver OAuth 요청 실패: {str(e)}")

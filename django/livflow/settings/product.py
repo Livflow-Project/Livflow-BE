@@ -39,6 +39,7 @@ CUSTOM_INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'django_cleanup.apps.CleanupConfig',
+    'rest_framework_simplejwt.token_blacklist',
     # 프로젝트 앱 추가
     'users',
     'store',
@@ -173,6 +174,7 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_PATH": "/",
     # "AUTH_COOKIE_SAMESITE": "Strict", # 배포용
     "AUTH_COOKIE_SAMESITE" : "Lax", # 개발용
+    "BLACKLIST_AFTER_ROTATION": True,
     
 }
 
