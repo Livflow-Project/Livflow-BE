@@ -8,6 +8,10 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from django.conf import settings
 
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import UntypedToken
+
+
 from users.utils import (
     store_refresh_token,
     get_refresh_token,
@@ -29,31 +33,37 @@ class CookieJWTAuthentication(JWTAuthentication):
             return None
 
 
-# ✅ 토큰 유효성 검증 및 자동 갱신
+
 class UserTokenVerifyView(APIView):
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = [CookieJWTAuthentication, JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        access_token = request.COOKIES.get("access_token")
         user_id = request.user.id
 
+        # ✅ 쿠키에 access_token 있는지 확인
+        access_token = request.COOKIES.get("access_token")
+
+        # ✅ 없으면 Authorization 헤더에서 토큰 추출
         if not access_token:
-            return Response({"error": "Access token not found in cookies"}, status=status.HTTP_401_UNAUTHORIZED)
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                access_token = auth_header.split("Bearer ")[1]
+
+        if not access_token:
+            return Response({"error": "Access token not found"}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
-            # 액세스 토큰 검증
-            AccessToken(access_token)
+            # ✅ 액세스 토큰 검증
+            UntypedToken(access_token)
             return Response({"message": "Access token is valid"}, status=status.HTTP_200_OK)
 
         except (InvalidToken, TokenError):
-            # 액세스 토큰이 만료된 경우, Redis에서 리프레시 토큰 확인
             stored_refresh_token = get_refresh_token(user_id)
             if not stored_refresh_token:
                 return Response({"error": "Refresh token not found"}, status=status.HTTP_401_UNAUTHORIZED)
 
             try:
-                # 리프레시 토큰 검증
                 refresh = RefreshToken(stored_refresh_token)
                 new_access_token = str(refresh.access_token)
 
@@ -62,7 +72,6 @@ class UserTokenVerifyView(APIView):
                     "new_access_token": new_access_token,
                 }, status=status.HTTP_200_OK)
 
-                # 새로운 액세스 토큰을 쿠키에 설정
                 response.set_cookie(
                     "access_token",
                     new_access_token,
@@ -76,6 +85,7 @@ class UserTokenVerifyView(APIView):
 
             except (InvalidToken, TokenError):
                 return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 
 # ✅ 액세스 토큰 재발급
