@@ -127,7 +127,7 @@ class RefreshAccessTokenView(APIView):
 
 # ✅ 소셜 로그아웃 (리프레시 토큰 삭제)
 class SocialLogout(APIView):
-    authentication_classes = [CookieJWTAuthentication]
+    authentication_classes = [CookieJWTAuthentication, JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
