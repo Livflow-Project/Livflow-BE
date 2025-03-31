@@ -125,9 +125,6 @@ class RefreshAccessTokenView(APIView):
             return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-# ✅ 소셜 로그아웃 (리프레시 토큰 삭제)
-from rest_framework_simplejwt.tokens import AccessToken, TokenError
-
 class SocialLogout(APIView):
     authentication_classes = [CookieJWTAuthentication, JWTAuthentication]
     permission_classes = [IsAuthenticated]

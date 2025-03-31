@@ -12,6 +12,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from users.utils import store_refresh_token  
 from allauth.socialaccount.models import SocialAccount
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+
+
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -86,14 +90,25 @@ class GoogleExchangeCodeForToken(APIView):
 
             # ✅ JWT 토큰 생성
             refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
+            access_token_obj = refresh.access_token
+            access_token = str(access_token_obj)
             refresh_token = str(refresh)
-            logger.info("✅ JWT 토큰 생성 완료")
+            print("✅ JWT 토큰 생성 완료")
 
             # ✅ Redis에 Refresh Token 저장
             expires_in = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())  
             store_refresh_token(user.id, refresh_token, expires_in)
-            logger.info(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
+            print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
+            
+            # ✅ AccessToken 블랙리스트에 등록하기 위한 OutstandingToken 저장
+            OutstandingToken.objects.get_or_create(
+                jti=access_token_obj['jti'],
+                defaults={
+                    'user': user,
+                    'token': access_token,
+                    'expires_at': access_token_obj['exp'],
+                }
+            )
 
             # ✅ 응답 데이터 구성 (Bearer 방식)
             response_data = {
