@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=f57%wq3lx)q4i6efhnbt!(7d567@nf6ifms9ib18n!0x-(_pz')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['api.livflow.co.kr', 'www.livflow.co.kr', 'localhost', '127.0.0.1','localhost:5173',"59.5.15.183",]
 
@@ -106,9 +106,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.livflow.co.kr",
     "https://api.livflow.co.kr",
     "https://api.livflow.co.kr:8443",
-    "http://localhost:5173",
     "http://localhost:8000",
     "http://59.5.15.183",
+    "http://localhost:5173",
 ]
 CORS_ALLOW_HEADERS = [
     "accept",
