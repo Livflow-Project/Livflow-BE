@@ -14,13 +14,13 @@ from .recipe_item_serializers import RecipeItemSerializer
 
 logger = logging.getLogger(__name__)
 
-# ✅ 레시피(Recipe) 시리얼라이저
+#  레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
-    recipe_name = serializers.CharField(source="name", allow_blank=False)  # ✅ 필수 값 (빈 문자열 X)
+    recipe_name = serializers.CharField(source="name", allow_blank=False)  #  필수 값 (빈 문자열 X)
     recipe_cost = serializers.DecimalField(source="sales_price_per_item", max_digits=10, decimal_places=2, required=False)  # ✅ 선택 값
-    recipe_img = serializers.ImageField(required=False, allow_null=True)  # ✅ 선택 값
-    ingredients = RecipeItemSerializer(many=True, required=False)  # ✅ 선택 값 (배열)
-    production_quantity = serializers.IntegerField(source="production_quantity_per_batch", required=False)  # ✅ 선택 값
+    recipe_img = serializers.ImageField(required=False, allow_null=True)  #  선택 값
+    ingredients = RecipeItemSerializer(many=True, required=False)  #  선택 값 (배열)
+    production_quantity = serializers.IntegerField(source="production_quantity_per_batch", required=False)  #  선택 값
     total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
@@ -35,13 +35,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
         
     def get_ingredients(self, obj):
-        from .serializers import RecipeItemSerializer  # 🔥 여기서 지연 임포트
+        from .serializers import RecipeItemSerializer  #  여기서 지연 임포트
         recipe_items = RecipeItem.objects.filter(recipe=obj)
         return RecipeItemSerializer(recipe_items, many=True).data    
 
     def validate(self, data):
         """🚀 빈 값이면 DB에서 기존 값 가져오기"""
-        instance = self.instance  # ✅ 기존 Recipe 객체 (PUT 요청 시)
+        instance = self.instance  #  기존 Recipe 객체 (PUT 요청 시)
 
         if instance:
             data.setdefault("sales_price_per_item", instance.sales_price_per_item)  # ✅ 기존 값 유지
@@ -54,12 +54,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance.sales_price_per_item = validated_data.get("sales_price_per_item", instance.sales_price_per_item)
         instance.production_quantity_per_batch = validated_data.get("production_quantity_per_batch", instance.production_quantity_per_batch)
 
-        # ✅ recipe_img도 항상 반영
+        #  recipe_img도 항상 반영
         if "recipe_img" in validated_data:
             instance.recipe_img = validated_data["recipe_img"]
             # print(f"💾 이미지 저장됨: {instance.recipe_img}")
 
-        # ✅ 재료 구매량 변경 시, 기존 값 백업 (프론트에서 purchase_quantity 없이도 작동)
+        #  재료 구매량 변경 시, 기존 값 백업 (프론트에서 purchase_quantity 없이도 작동)
         ingredients_data = validated_data.get("ingredients", [])
         for ing in ingredients_data:
             ingredient_id = ing.get("ingredient_id")
@@ -72,8 +72,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 latest_ingredient = Ingredient.objects.get(id=ingredient_id)
                 old_qty = latest_ingredient.original_stock_before_edit
                 current_qty = latest_ingredient.purchase_quantity
-
-                # print(f"📌 기존 original_stock: {old_qty}, 현재 구매량: {current_qty}")
 
                 if old_qty and current_qty < old_qty:
                     # print("⚠️ original_stock 감소 감지! used_stock 초기화 적용")
@@ -88,8 +86,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients', [])  
-        # print(f"🔍 [validated_data]: {validated_data}")
-        # print(f"🔍 [ingredients_data]: {ingredients_data}")
+        # print(f" [validated_data]: {validated_data}")
+        # print(f" [ingredients_data]: {ingredients_data}")
         recipe = Recipe.objects.create(**validated_data)
 
         # print(f"🍽️ [레시피 생성] 이름: {recipe.name}, 총 재료 수: {len(ingredients_data)}")
@@ -97,13 +95,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredient_costs = []
 
         for idx, ingredient_data in enumerate(ingredients_data, 1):
-            # print(f"\n🧾 [#{idx}] ingredient_data:", ingredient_data)
+            # print(f"\n [#{idx}] ingredient_data:", ingredient_data)
 
             try:
                 ingredient = get_object_or_404(Ingredient, id=ingredient_data["ingredient_id"])
-                # print(f"✅ Ingredient 조회 성공: {ingredient.name}")
+                # print(f" Ingredient 조회 성공: {ingredient.name}")
             except:
-                # print(f"❌ Ingredient 조회 실패: ID = {ingredient_data.get('ingredient_id')}")
+                # print(f" Ingredient 조회 실패: ID = {ingredient_data.get('ingredient_id')}")
                 continue
 
             required_amount = Decimal(str(ingredient_data.get("quantity_used", 0)))
@@ -120,7 +118,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 quantity_used=required_amount,
                 unit=unit
             )
-            # print(f"✅ RecipeItem 생성 완료: {ingredient.name}, 사용량: {required_amount}, 단위: {unit}")
+            # print(f" RecipeItem 생성 완료: {ingredient.name}, 사용량: {required_amount}, 단위: {unit}")
 
             ingredient_costs.append({
                 "ingredient_id": str(ingredient.id),
@@ -130,7 +128,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 "unit": unit
             })
 
-        # ✅ 원가 계산 후 DB에 저장
+        #  원가 계산 후 DB에 저장
         cost_data = calculate_recipe_cost(
             ingredients=ingredient_costs,
             sales_price_per_item=recipe.sales_price_per_item,  
@@ -149,14 +147,14 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         updated_recipe = Recipe.objects.get(id=recipe.id)
 
-        return updated_recipe  # ✅ 시리얼라이저에 반영
+        return updated_recipe  #  시리얼라이저에 반영
 
     def get_total_ingredient_cost(self, obj):
-        """✅ 응답에 `total_ingredient_cost` 추가 (None 방지)"""
+        """ 응답에 `total_ingredient_cost` 추가 (None 방지)"""
         return getattr(obj, "total_ingredient_cost", 0)
 
     def get_production_cost(self, obj):
-        """✅ 응답에 `production_cost` 추가 (None 방지)"""
+        """ 응답에 `production_cost` 추가 (None 방지)"""
         return getattr(obj, "production_cost", 0)
 
     def to_representation(self, instance):
@@ -164,9 +162,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         data["recipe_cost"] = data["recipe_cost"] if data["recipe_cost"] is not None else 0
 
         recipe_items = RecipeItem.objects.filter(recipe=instance)
-        # print(f"📌 [to_representation] 연결된 RecipeItem 개수: {recipe_items.count()}")
+        # print(f" [to_representation] 연결된 RecipeItem 개수: {recipe_items.count()}")
         for item in recipe_items:
-            print(f"🔗 {item.ingredient.name} - {item.quantity_used}")
+            print(f" {item.ingredient.name} - {item.quantity_used}")
 
         data["ingredients"] = [
             {
