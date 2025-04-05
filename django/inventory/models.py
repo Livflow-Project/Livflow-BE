@@ -13,10 +13,10 @@ class Inventory(models.Model):
 
     @property
     def get_unit(self):
-        """ ✅ Ingredient 모델에서 unit 가져오기 """
+        """  Ingredient 모델에서 unit 가져오기 """
         return self.ingredient.unit
 
     @property
     def get_unit_cost(self):
-        """ ✅ Ingredient 모델에서 unit_cost 가져오기 """
-        return self.ingredient.unit_cost  # ✅ Ingredient에서 계산된 unit_cost 가져오기
+        """  Ingredient 모델에서 unit_cost 가져오기 """
+        return self.ingredient.unit_cost  # Ingredient에서 계산된 unit_cost 가져오기

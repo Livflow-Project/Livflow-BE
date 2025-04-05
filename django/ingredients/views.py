@@ -29,7 +29,7 @@ class StoreIngredientView(APIView):
                 "ingredient_id": str(ingredient.id),
                 "ingredient_name": ingredient.name,
                 "ingredient_cost": ingredient.purchase_price,
-                "capacity": ingredient.purchase_quantity,  # ✅ 원래 등록된 구매 용량 기준
+                "capacity": ingredient.purchase_quantity,  # 원래 등록된 구매 용량 기준
                 "unit": ingredient.unit,
                 "unit_cost": ingredient.unit_cost,
                 "shop": ingredient.vendor if ingredient.vendor else None,
@@ -49,14 +49,14 @@ class StoreIngredientView(APIView):
         """ 특정 상점에 재료 추가 """
         store = get_object_or_404(Store, id=store_id)
         data = request.data.copy()
-        data["store"] = store.id  # ✅ Store ID 추가
+        data["store"] = store.id  # store_id가 없을 수 있으니 직접 입력
 
-        with transaction.atomic():  # ✅ 트랜잭션 적용
-            serializer = IngredientSerializer(data=data)
-            if serializer.is_valid():
-                ingredient = serializer.save(store=store)  # ✅ store_id 저장
+        with transaction.atomic():  # 트랜잭션 적용
+            serializer = IngredientSerializer(data=data)# 받아온 데이터를 역직렬화함
+            if serializer.is_valid(): # serializer 필수 데이터타입이 맞는지 검증
+                ingredient = serializer.save(store=store)  # store_id 저장
 
-                # ✅ Inventory 자동 추가
+                # Inventory 자동 추가(데이터 값을 inventory에 넣기)
                 Inventory.objects.create(
                     ingredient=ingredient,
                     remaining_stock=ingredient.purchase_quantity,
@@ -80,12 +80,12 @@ class IngredientDetailView(APIView):
     def get(self, request, store_id, ingredient_id):
         """ 특정 재료 상세 조회 """
         inventory = get_object_or_404(Inventory, ingredient__id=ingredient_id, ingredient__store_id=store_id)
-        ingredient = inventory.ingredient  # ✅ Inventory에서 Ingredient 가져오기
+        ingredient = inventory.ingredient  # Inventory에서 Ingredient 가져오기
         data = {
             "ingredient_id": str(ingredient.id),
             "ingredient_name": ingredient.name,
             "ingredient_cost": ingredient.purchase_price,
-            "capacity": ingredient.purchase_quantity, #구매용량
+            "capacity": ingredient.purchase_quantity, # 구매용량
             "unit": ingredient.unit,
             "unit_cost": ingredient.unit_cost,
             "shop": ingredient.vendor if ingredient.vendor else None,
@@ -114,42 +114,42 @@ class IngredientDetailView(APIView):
                 new_original_stock = old_original_stock  # 값이 없으면 기존 값 유지
 
             difference = new_original_stock - old_original_stock  # 용량 변화량 계산
-            print(f"📌 기존 original_stock: {old_original_stock}, 새로운 original_stock: {new_original_stock}, 차이: {difference}")
+            # print(f" 기존 original_stock: {old_original_stock}, 새로운 original_stock: {new_original_stock}, 차이: {difference}")
 
             inventory = Inventory.objects.filter(ingredient=ingredient).first()
 
             if inventory:
-                print(f"🔄 기존 remaining_stock: {inventory.remaining_stock}, 변동 차이: {difference}")
+                # print(f" 기존 remaining_stock: {inventory.remaining_stock}, 변동 차이: {difference}")
 
                 inventory.remaining_stock = Decimal(str(inventory.remaining_stock))
 
-                # 🔥 **original_stock 증가 → remaining_stock 증가**
+                #  **original_stock 증가 → remaining_stock 증가**
                 if difference > 0:
                     inventory.remaining_stock += difference
-                    print(f"✅ 증가 적용 - 새로운 remaining_stock: {inventory.remaining_stock}")
+                    # print(f" 증가 적용 - 새로운 remaining_stock: {inventory.remaining_stock}")
 
-                # 🔥 **original_stock 감소 → used_stock을 0으로 설정 & remaining_stock 재조정**
+                #  **original_stock 감소 → used_stock을 0으로 설정 & remaining_stock 재조정**
                 elif difference < 0:
-                    print(f"⚠️ original_stock 감소 감지! used_stock 초기화 적용")
+                    # print(f"⚠️ original_stock 감소 감지! used_stock 초기화 적용")
 
-                    # ✅ 백업 로직 추가
+                    #  백업 로직 추가
                     if ingredient.original_stock_before_edit == 0:
                         ingredient.original_stock_before_edit = old_original_stock
-                        print(f"📝 original_stock_before_edit 백업: {old_original_stock}")
+                        # print(f" original_stock_before_edit 백업: {old_original_stock}")
                         ingredient.save()
 
-                    # ✅ used_stock 초기화
+                    #  used_stock 초기화
                     used_stock = old_original_stock - inventory.remaining_stock
-                    print(f"🔍 기존 사용량(used_stock): {used_stock} → 초기화 (0)")
+                    # print(f" 기존 사용량(used_stock): {used_stock} → 초기화 (0)")
 
-                    # ✅ remaining_stock을 new_original_stock으로 재설정
+                    # remaining_stock을 new_original_stock으로 재설정
                     inventory.remaining_stock = new_original_stock
-                    print(f"✅ remaining_stock을 new_original_stock({new_original_stock})으로 변경")
+                    # print(f"remaining_stock을 new_original_stock({new_original_stock})으로 변경")
 
 
                 inventory.save()
 
-            # ✅ `original_stock` 반영 후 재료 업데이트
+            #  `original_stock` 반영 후 재료 업데이트
             serializer.save(purchase_quantity=new_original_stock)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -174,10 +174,10 @@ class IngredientUsagesView(APIView):
 
     def get(self, request, store_id, ingredient_id):
         """특정 재료를 사용 중인 레시피 리스트 반환"""
-        # ✅ 해당 재료를 사용하는 RecipeItem 조회
+        # 해당 재료를 사용하는 RecipeItem 조회
         recipe_items = RecipeItem.objects.filter(ingredient_id=ingredient_id, recipe__store_id=store_id)
 
-        # ✅ 레시피 이름 목록 반환
+        # 레시피 이름 목록 반환
         recipe_names = [item.recipe.name for item in recipe_items]
 
         return Response(recipe_names, status=status.HTTP_200_OK)
