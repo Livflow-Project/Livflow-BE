@@ -18,8 +18,8 @@ class RecipeItemSerializer(serializers.ModelSerializer):
         """🚀 unit_price를 반환할 때 `dict` 타입이 아닌 모델 인스턴스를 사용하도록 수정"""
         if isinstance(obj, dict):  
             ingredient_id = obj.get("ingredient_id")
-            ingredient = get_object_or_404(Ingredient, id=ingredient_id)  # 🔥 Ingredient 모델에서 가져오기
+            ingredient = get_object_or_404(Ingredient, id=ingredient_id)  # Ingredient 모델에서 가져오기
         else:
-            ingredient = obj.ingredient  # 🔥 기존 로직 유지
+            ingredient = obj.ingredient  
 
         return ingredient.unit_cost

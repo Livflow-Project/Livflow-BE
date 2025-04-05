@@ -17,13 +17,12 @@ class Recipe(models.Model):
     id = models.UUIDField(default=uuid4, primary_key=True, editable=False)
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="recipes", default=1)
     name = models.CharField(max_length=255)
-    sales_price_per_item = models.FloatField(null=True, blank=True)
-    production_quantity_per_batch = models.IntegerField(default=1)
-    recipe_img = models.ImageField(upload_to=recipe_image_upload_path, null=True, blank=True)  # ✅ 이미지 필드 추가
+    sales_price_per_item = models.FloatField(null=True, blank=True) # 레시피 1개당 판매가격
+    production_quantity_per_batch = models.IntegerField(default=1) # 한번에 만드는 메뉴 갯수
+    recipe_img = models.ImageField(upload_to=recipe_image_upload_path, null=True, blank=True)  # 이미지 필드 추가
     is_favorites = models.BooleanField(default=False)
     total_ingredient_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 총 재료비
     production_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # 개당 원가
-    
     created_at = models.DateTimeField(default=now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)    
     

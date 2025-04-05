@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 
 #  레시피(Recipe) 시리얼라이저
 class RecipeSerializer(serializers.ModelSerializer):
-    recipe_name = serializers.CharField(source="name", allow_blank=False)  #  필수 값 (빈 문자열 X)
+    recipe_name = serializers.CharField(source="name", allow_blank=False)  #  필수 값 
     recipe_cost = serializers.DecimalField(source="sales_price_per_item", max_digits=10, decimal_places=2, required=False)  # ✅ 선택 값
     recipe_img = serializers.ImageField(required=False, allow_null=True)  #  선택 값
-    ingredients = RecipeItemSerializer(many=True, required=False)  #  선택 값 (배열)
+    ingredients = RecipeItemSerializer(many=True, required=False)  # 재료
     production_quantity = serializers.IntegerField(source="production_quantity_per_batch", required=False)  #  선택 값
-    total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_ingredient_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True) # 총 재료가격
     production_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
 
@@ -35,7 +35,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
         
     def get_ingredients(self, obj):
-        from .serializers import RecipeItemSerializer  #  여기서 지연 임포트
+        from .serializers import RecipeItemSerializer  # 지연 임포트
         recipe_items = RecipeItem.objects.filter(recipe=obj)
         return RecipeItemSerializer(recipe_items, many=True).data    
 
@@ -44,20 +44,20 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance = self.instance  #  기존 Recipe 객체 (PUT 요청 시)
 
         if instance:
-            data.setdefault("sales_price_per_item", instance.sales_price_per_item)  # ✅ 기존 값 유지
-            data.setdefault("production_quantity_per_batch", instance.production_quantity_per_batch)  # ✅ 기존 값 유지
+            data.setdefault("sales_price_per_item", instance.sales_price_per_item)  # 기존 값 유지
+            data.setdefault("production_quantity_per_batch", instance.production_quantity_per_batch)  # 기존 값 유지
             data.setdefault("recipe_img", instance.recipe_img)
         return data
         
+        # put 요청시
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
         instance.sales_price_per_item = validated_data.get("sales_price_per_item", instance.sales_price_per_item)
         instance.production_quantity_per_batch = validated_data.get("production_quantity_per_batch", instance.production_quantity_per_batch)
 
-        #  recipe_img도 항상 반영
         if "recipe_img" in validated_data:
             instance.recipe_img = validated_data["recipe_img"]
-            # print(f"💾 이미지 저장됨: {instance.recipe_img}")
+            # print(f" 이미지 저장됨: {instance.recipe_img}")
 
         #  재료 구매량 변경 시, 기존 값 백업 (프론트에서 purchase_quantity 없이도 작동)
         ingredients_data = validated_data.get("ingredients", [])
@@ -74,7 +74,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 current_qty = latest_ingredient.purchase_quantity
 
                 if old_qty and current_qty < old_qty:
-                    # print("⚠️ original_stock 감소 감지! used_stock 초기화 적용")
+                    # print("original_stock 감소 감지, used_stock 초기화 적용")
                     required_amount = Decimal("0.0")
 
                 # required_amount 반영
@@ -90,7 +90,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         # print(f" [ingredients_data]: {ingredients_data}")
         recipe = Recipe.objects.create(**validated_data)
 
-        # print(f"🍽️ [레시피 생성] 이름: {recipe.name}, 총 재료 수: {len(ingredients_data)}")
+        # print(f" [레시피 생성] 이름: {recipe.name}, 총 재료 수: {len(ingredients_data)}")
 
         ingredient_costs = []
 
@@ -147,7 +147,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         updated_recipe = Recipe.objects.get(id=recipe.id)
 
-        return updated_recipe  #  시리얼라이저에 반영
+        return updated_recipe  # 시리얼라이저에 반영
 
     def get_total_ingredient_cost(self, obj):
         """ 응답에 `total_ingredient_cost` 추가 (None 방지)"""
