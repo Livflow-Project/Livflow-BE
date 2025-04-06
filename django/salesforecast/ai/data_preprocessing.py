@@ -1,21 +1,37 @@
-# import pandas as pd
-# from ledger.models import Transaction
+# 모델 학습/예측에 사용할 데이터를 전처리해주는 핵심 함수들을 담는 파일
 
-# def load_transaction_data():
-#     """
-#     거래 내역 데이터를 DataFrame으로 변환
-#     """
-#     transactions = Transaction.objects.all().values("date", "store__name", "category__name", "amount", "transaction_type")
+# salesforecast/ai/data_preprocessing.py
 
-#     # Pandas DataFrame으로 변환
-#     df = pd.DataFrame(transactions)
+import pandas as pd
+from ledger.models import Transaction
+from datetime import datetime
 
-#     # 날짜 데이터를 DateTime 형식으로 변환
-#     df["date"] = pd.to_datetime(df["date"])
+def load_sales_data():
+    """ Transaction 모델에서 income만 불러와 학습용 데이터프레임 생성 """
+    qs = Transaction.objects.filter(transaction_type='income').select_related('store', 'category')
 
-#     # 연도, 월, 일 컬럼 추가
-#     df["year"] = df["date"].dt.year
-#     df["month"] = df["date"].dt.month
-#     df["day"] = df["date"].dt.day
+    records = []
+    for t in qs:
+        # 예: "서울 강남구 테헤란로 1" → "강남구"
+        try:
+            district = t.store.address.split()[1]
+        except Exception:
+            district = "unknown"
 
-#     return df
+        records.append({
+            "date": t.date,
+            "district": district,
+            "menu": t.category.name if t.category else "기타",
+            "amount": float(t.amount),
+        })
+
+    df = pd.DataFrame(records)
+
+    # 날짜 기반 피처 추가
+    df["month"] = df["date"].dt.month
+    df["weekday"] = df["date"].dt.day_name()
+
+    # 필요없는 컬럼 제거
+    df.drop(columns=["date"], inplace=True)
+
+    return df

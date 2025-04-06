@@ -1,44 +1,42 @@
-# import numpy as np
-# import tensorflow as tf
-# import pandas as pd
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework.permissions import IsAuthenticated
-# from salesforecast.ai.data_preprocessing import load_transaction_data
+# salesforecast/views.py
 
-# class SalesForecastView(APIView):
-#     permission_classes = [IsAuthenticated]
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from salesforecast.ai.predict import predict_sales
+from salesforecast.ai.predict import predict_market_sales
 
-#     def get(self, request):
-#         """
-#         특정 카테고리(업종)와 날짜를 입력하면 매출을 예측하는 API
-#         """
-#         category = request.GET.get("category")  # 예: '카페'
-#         year = int(request.GET.get("year", 2025))
-#         month = int(request.GET.get("month", 6))
 
-#         if not category:
-#             return Response({"error": "카테고리(category)를 입력해주세요."}, status=400)
+class SalesPredictAPIView(APIView):
+    def post(self, request):
+        district = request.data.get("district")
+        menu = request.data.get("menu")
+        date = request.data.get("date")  # yyyy-mm-dd
 
-#         # 1️⃣ 저장된 모델 불러오기
-#         model = tf.keras.models.load_model("sales_forecast_model.h5")
+        if not all([district, menu, date]):
+            return Response({"error": "district, menu, date는 필수입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-#         # 2️⃣ 데이터 로드 및 전처리
-#         df = load_transaction_data()
-#         df = df[["year", "month", "category__name"]]
-#         df = pd.get_dummies(df, columns=["category__name"])
+        try:
+            predicted = predict_sales(district, menu, date)
+            return Response({"predicted_sales": int(predicted)}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#         # 3️⃣ 입력 데이터 만들기
-#         input_data = pd.DataFrame({"year": [year], "month": [month], "category__name_" + category: [1]})
-#         input_data = input_data.reindex(columns=df.columns, fill_value=0)
 
-#         # 4️⃣ 예측 수행
-#         prediction = model.predict(input_data)
-#         predicted_sales = float(prediction[0][0])  # 예측 결과 변환
+class MarketForecastAPIView(APIView):
+    def get(self, request):
+        district = request.GET.get("district")
+        category = request.GET.get("category")
+        year = request.GET.get("year")
+        month = request.GET.get("month")
 
-#         return Response({
-#             "category": category,
-#             "year": year,
-#             "month": month,
-#             "predicted_sales": predicted_sales
-#         }, status=200)
+        if not all([district, category, year, month]):
+            return Response({"error": "district, category, year, month는 필수입니다."}, status=400)
+
+        try:
+            year = int(year)
+            month = int(month)
+            predicted = predict_market_sales(district, category, year, month)
+            return Response({"predicted_sales": int(predicted)}, status=200)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

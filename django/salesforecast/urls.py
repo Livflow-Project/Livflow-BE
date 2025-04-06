@@ -1,6 +1,9 @@
-# from django.urls import path
-# from .views import SalesForecastView
+# salesforecast/urls.py
 
-# urlpatterns = [
-#     path("predict/", SalesForecastView.as_view(), name="sales_forecast"),
-# ]
+from django.urls import path
+from .views import SalesPredictAPIView, MarketForecastAPIView
+
+urlpatterns = [
+    path("predict/", SalesPredictAPIView.as_view(), name="sales-predict"),
+    path("market-predict/", MarketForecastAPIView.as_view(), name="market-predict"),
+]
