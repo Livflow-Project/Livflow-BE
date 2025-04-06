@@ -21,20 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Python 설정
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      # 3. 종속성 설치
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
-
-      # 4. 서버에 배포 (SSH 접속)
+      # 2. 서버에 배포 (SSH 접속)
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -52,17 +39,11 @@ jobs:
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S touch /home/joo/back-end-coffee/django/logs/django_error.log
             echo ${{ secrets.SUDO_PASSWORD }} | sudo -S chmod -R 777 /home/joo/back-end-coffee/django/logs
 
-            # 잠긴 컨테이너 강제 정리
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker ps -a -q | xargs -r sudo docker stop || true
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker ps -a -q | xargs -r sudo docker rm -f || true
+            # 백엔드(web)만 빌드 및 재시작 (프론트는 그대로 유지)
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml build web
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d web
 
-            # 기존 컨테이너 제거 및 재시작
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml down --remove-orphans
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S docker-compose -f docker-compose-pro.yml up -d --build
-
-
-
-      # 5. Nginx 서비스 재시작
+      # 3. Nginx 서비스 재시작
       - name: Restart Nginx
         uses: appleboy/ssh-action@v0.1.8
         with:
