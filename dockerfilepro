@@ -1,48 +1,29 @@
-# Use the official Python 3.12 image
-FROM python:3.12-slim
+# dockerfilepro (기존 유지하면서 아래만 수정)
+FROM my-base:tf 
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    curl \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip and install Poetry
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install poetry
-
-# Set the working directory
 WORKDIR /app
 
-# Copy poetry files
+# Poetry 설치 및 종속성 설치
 COPY pyproject.toml poetry.lock ./
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --only main --no-interaction --no-ansi
 
-# Copy the Django application
+# Django 프로젝트 복사
 COPY django/ /app/django/
 
-# Create logs directory and set permissions
+# 로그 폴더 생성 및 권한 설정
 RUN mkdir -p /app/django/logs && \
     touch /app/django/logs/django_error.log && \
     chmod -R 777 /app/django/logs
 
-# Install dependencies
-RUN poetry config virtualenvs.create false && \
-    poetry install --only main --no-interaction --no-ansi
-
-# Set working directory to Django project root
 WORKDIR /app/django
 
-# Collect static files
+# 정적 파일 수집
 RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
-# Expose the application port
 EXPOSE 8000
-
-# Start the application with Gunicorn
 CMD ["gunicorn", "livflow.wsgi:application", "--bind", "0.0.0.0:8000"]

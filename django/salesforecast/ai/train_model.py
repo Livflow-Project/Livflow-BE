@@ -71,8 +71,6 @@ print("✅ 모델 학습 및 저장 완료!")
 
 # salesforecast/ai/train_market_model.py
 
-
-
 df = load_market_data()
 
 # 🔹 카테고리 피처 저장
