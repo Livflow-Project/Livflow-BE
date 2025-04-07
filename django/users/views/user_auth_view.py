@@ -5,9 +5,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-
 from django.conf import settings
-
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import UntypedToken
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
@@ -19,42 +17,36 @@ from users.utils import (
     verify_refresh_token
 )
 
-# ✅ 쿠키 기반 JWT 인증
-class CookieJWTAuthentication(JWTAuthentication):
-    def authenticate(self, request):
-        # 쿠키에서 액세스 토큰 가져오기
-        raw_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
-        if not raw_token:
-            return None
-        try:
-            validated_token = self.get_validated_token(raw_token)
-            return self.get_user(validated_token), validated_token
-        except (InvalidToken, TokenError):
-            return None
+# # 쿠키 기반 JWT 인증
+# class CookieJWTAuthentication(JWTAuthentication):
+#     def authenticate(self, request):
+#         # 쿠키에서 액세스 토큰 가져오기
+#         raw_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
+#         if not raw_token:
+#             return None
+#         try:
+#             validated_token = self.get_validated_token(raw_token)
+#             return self.get_user(validated_token), validated_token
+#         except (InvalidToken, TokenError):
+#             return None
 
 
 
 class UserTokenVerifyView(APIView):
-    authentication_classes = [CookieJWTAuthentication, JWTAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         user_id = request.user.id
 
-        # ✅ 쿠키에 access_token 있는지 확인
-        access_token = request.COOKIES.get("access_token")
-
-        # ✅ 없으면 Authorization 헤더에서 토큰 추출
-        if not access_token:
-            auth_header = request.headers.get("Authorization")
-            if auth_header and auth_header.startswith("Bearer "):
-                access_token = auth_header.split("Bearer ")[1]
-
-        if not access_token:
+        # Authorization 헤더에서 토큰 추출
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
             return Response({"error": "Access token not found"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        access_token = auth_header.split("Bearer ")[1]
+
         try:
-            # ✅ 액세스 토큰 검증
             UntypedToken(access_token)
             return Response({"message": "Access token is valid"}, status=status.HTTP_200_OK)
 
@@ -67,24 +59,64 @@ class UserTokenVerifyView(APIView):
                 refresh = RefreshToken(stored_refresh_token)
                 new_access_token = str(refresh.access_token)
 
-                response = Response({
+                return Response({
                     "message": "Access token was expired, but refresh token is valid",
                     "new_access_token": new_access_token,
                 }, status=status.HTTP_200_OK)
 
-                response.set_cookie(
-                    "access_token",
-                    new_access_token,
-                    max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-                    httponly=True,
-                    secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
-                    samesite="Strict",
-                    domain=".livflow.co.kr",
-                )
-                return response
-
             except (InvalidToken, TokenError):
                 return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    # def post(self, request, *args, **kwargs):
+    #     user_id = request.user.id
+
+    #     # 쿠키에 access_token 있는지 확인
+    #     access_token = request.COOKIES.get("access_token")
+
+    #     # ✅ 없으면 Authorization 헤더에서 토큰 추출
+    #     if not access_token:
+    #         auth_header = request.headers.get("Authorization")
+    #         if auth_header and auth_header.startswith("Bearer "):
+    #             access_token = auth_header.split("Bearer ")[1]
+
+    #     if not access_token:
+    #         return Response({"error": "Access token not found"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    #     try:
+    #         # ✅ 액세스 토큰 검증
+    #         UntypedToken(access_token)
+    #         return Response({"message": "Access token is valid"}, status=status.HTTP_200_OK)
+
+    #     except (InvalidToken, TokenError):
+    #         stored_refresh_token = get_refresh_token(user_id)
+    #         if not stored_refresh_token:
+    #             return Response({"error": "Refresh token not found"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    #         try:
+    #             refresh = RefreshToken(stored_refresh_token)
+    #             new_access_token = str(refresh.access_token)
+
+    #             response = Response({
+    #                 "message": "Access token was expired, but refresh token is valid",
+    #                 "new_access_token": new_access_token,
+    #             }, status=status.HTTP_200_OK)
+
+    #             response.set_cookie(
+    #                 "access_token",
+    #                 new_access_token,
+    #                 max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+    #                 httponly=True,
+    #                 secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+    #                 samesite="Strict",
+    #                 domain=".livflow.co.kr",
+    #             )
+    #             return response
+
+    #         except (InvalidToken, TokenError):
+    #             return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 
@@ -110,15 +142,15 @@ class RefreshAccessTokenView(APIView):
             new_access_token = str(refresh.access_token)
 
             response = Response({"message": "Access token refreshed successfully"}, status=status.HTTP_200_OK)
-            response.set_cookie(
-                "access_token",
-                new_access_token,
-                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
-                httponly=True,
-                secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
-                samesite="Strict",
-                domain=".livflow.co.kr",
-            )
+            # response.set_cookie(
+            #     "access_token",
+            #     new_access_token,
+            #     max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+            #     httponly=True,
+            #     secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+            #     samesite="Strict",
+            #     domain=".livflow.co.kr",
+            # )
             return response
 
         except (InvalidToken, TokenError):
@@ -127,7 +159,7 @@ class RefreshAccessTokenView(APIView):
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 class SocialLogout(APIView):
-    authentication_classes = [CookieJWTAuthentication, JWTAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -140,13 +172,13 @@ class SocialLogout(APIView):
         raw_token = None
 
         # 1. 쿠키에서 access_token 확인
-        raw_token = request.COOKIES.get("access_token")
+        # raw_token = request.COOKIES.get("access_token")
 
         # 2. 없으면 Authorization 헤더에서 Bearer 토큰 확인
-        if not raw_token:
-            auth_header = request.headers.get("Authorization")
-            if auth_header and auth_header.startswith("Bearer "):
-                raw_token = auth_header.split("Bearer ")[1]
+        # if not raw_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            raw_token = auth_header.split("Bearer ")[1]
 
         if raw_token:
             try:
@@ -160,8 +192,6 @@ class SocialLogout(APIView):
 
         response = Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
 
-        # ✅ 쿠키 삭제 (쿠키 사용 시)
-        response.delete_cookie("access_token", domain=".livflow.co.kr", path="/")
         return response
 
 

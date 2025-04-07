@@ -142,10 +142,6 @@ SIMPLE_JWT = {
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_COOKIE": "access_token", #쿠키 삭제 예정
-    "AUTH_COOKIE_SECURE": True, #쿠키 삭제 예정
-    "AUTH_COOKIE_HTTP_ONLY": True, #쿠키 삭제 예정
-    "AUTH_COOKIE_PATH": "/", #쿠키 삭제 예정
     # "AUTH_COOKIE_SAMESITE": "Strict", # 배포용
     "AUTH_COOKIE_SAMESITE" : "Lax", # 개발용
     "BLACKLIST_AFTER_ROTATION": True,

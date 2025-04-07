@@ -19,5 +19,5 @@ urlpatterns = [
     # user_auth
     path("token/verify/", UserTokenVerifyView.as_view(), name="token-verify"),
     path("token/refresh/", RefreshAccessTokenView.as_view(), name="token_refresh"),
-        path("test-token/", TestTokenView.as_view(), name="test-token"),
+    path("test-token/", TestTokenView.as_view(), name="test-token"),
     ]
