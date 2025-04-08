@@ -1,28 +1,26 @@
-# dockerfilepro (기존 유지하면서 아래만 수정)
-FROM my-base:tf 
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM my-base:tf
 
 WORKDIR /app
 
-# Poetry 설치 및 종속성 설치
+# poetry 파일 먼저 복사
 COPY pyproject.toml poetry.lock ./
+
+# Django 앱 소스도 먼저 복사 (중요)
+COPY django/ /app/django/
+
+# Poetry 설치 및 종속성 설치
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --only main --no-interaction --no-ansi
 
-# Django 프로젝트 복사
-COPY django/ /app/django/
-
-# 로그 폴더 생성 및 권한 설정
+# 로그 폴더 생성
 RUN mkdir -p /app/django/logs && \
     touch /app/django/logs/django_error.log && \
     chmod -R 777 /app/django/logs
 
 WORKDIR /app/django
 
-# 정적 파일 수집
+# static 수집
 RUN python manage.py collectstatic --noinput --settings=livflow.settings.product
 
 EXPOSE 8000

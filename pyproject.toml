@@ -4,7 +4,14 @@ version = "0.1.0"
 description = "My Django Project"
 authors = ["youngkwangjoo <dudrknd1642@gmail.com>"]
 packages = [
-    { include = "livflow", from = "django" }
+    { include = "livflow", from = "django" },
+    { include = "ledger", from = "django" },
+    { include = "store", from = "django" },
+    { include = "users", from = "django" },
+    { include = "salesforecast", from = "django" },
+    { include = "inventory", from = "django" },
+    { include = "ingredients", from = "django" },
+    { include = "costcalcul", from = "django" },
 ]
 
 
