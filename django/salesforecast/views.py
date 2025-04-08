@@ -1,11 +1,10 @@
-# salesforecast/views.py
-
+import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from salesforecast.ai.predict import predict_sales
-from salesforecast.ai.predict import predict_market_sales
 
+
+FASTAPI_BASE_URL = "http://172.30.1.65:8000"  # 로컬 FastAPI 서버 주소로 바꿔줘
 
 class SalesPredictAPIView(APIView):
     def post(self, request):
@@ -17,10 +16,17 @@ class SalesPredictAPIView(APIView):
             return Response({"error": "district, menu, date는 필수입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            predicted = predict_sales(district, menu, date)
-            return Response({"predicted_sales": int(predicted)}, status=status.HTTP_200_OK)
+            response = requests.post(
+                f"{FASTAPI_BASE_URL}/predict",
+                json={"district": district, "menu": menu, "date_str": date},
+                timeout=5
+            )
+            if response.status_code == 200:
+                return Response(response.json(), status=200)
+            return Response({"error": "FastAPI 서버 오류", "detail": response.text}, status=500)
+
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=500)
 
 
 class MarketForecastAPIView(APIView):
@@ -34,9 +40,19 @@ class MarketForecastAPIView(APIView):
             return Response({"error": "district, category, year, month는 필수입니다."}, status=400)
 
         try:
-            year = int(year)
-            month = int(month)
-            predicted = predict_market_sales(district, category, year, month)
-            return Response({"predicted_sales": int(predicted)}, status=200)
+            response = requests.post(
+                f"{FASTAPI_BASE_URL}/market-predict",
+                json={
+                    "district": district,
+                    "category": category,
+                    "year": int(year),
+                    "month": int(month)
+                },
+                timeout=5
+            )
+            if response.status_code == 200:
+                return Response(response.json(), status=200)
+            return Response({"error": "FastAPI 서버 오류", "detail": response.text}, status=500)
+
         except Exception as e:
             return Response({"error": str(e)}, status=500)
