@@ -135,8 +135,8 @@ SECURE_HSTS_PRELOAD = True
 
 # JWT Authentication settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=int(os.getenv("ACCESS_TOKEN_LIFETIME_DAYS", hours=12))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("REFRESH_TOKEN_LIFETIME_DAYS", days=3))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=int(os.getenv("ACCESS_TOKEN_LIFETIME_DAYS", "12"))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("REFRESH_TOKEN_LIFETIME_DAYS", "3"))),
     "ROTATE_REFRESH_TOKENS": False, #향후 True로 변경
     "BLACKLIST_AFTER_ROTATION": False, #향후 True로 변경
     "ALGORITHM": "HS256",
