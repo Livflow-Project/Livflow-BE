@@ -2,7 +2,8 @@
 
 <p>가계부 정리부터 메뉴 원가 계산까지,<br />효율적인 비즈니스 관리를 위한 올인원 웹 서비스</h3>
 
-![Livflow 로고](https://raw.githubusercontent.com/glory-coffee-project/Livflow-FE/main/public/og-image.png)
+![스크린샷 2025-04-10 오후 9 17 24](https://github.com/user-attachments/assets/5b8063d5-fee0-4088-886d-7381aafc5db4)
+
 
 <br />
 
