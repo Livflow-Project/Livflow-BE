@@ -15,7 +15,7 @@ from drf_yasg import openapi
 from django.db import transaction
 
 
-# ✅ 1️⃣ 거래 내역 목록 조회 & 생성
+#  거래 내역 목록 조회 & 생성
 class LedgerTransactionListCreateView(APIView):  
     permission_classes = [IsAuthenticated]
     
@@ -40,13 +40,13 @@ class LedgerTransactionListCreateView(APIView):
         except ValueError:
             return Response({"error": "year, month, day는 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ ledger.models.Transaction을 조회하도록 변경
+        # ledger.models.Transaction을 조회하도록 변경
         transactions = Transaction.objects.filter(store=store, date__year=year, date__month=month).order_by("created_at")
         if day:
             transactions = transactions.filter(date__day=day)
 
-        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  
-        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  
+        # print(f"📌 [DEBUG] SQL Query: {transactions.query}")  
+        # print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  
 
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -63,21 +63,20 @@ class LedgerTransactionListCreateView(APIView):
 
 
     def post(self, request, store_id):
-        """ ✅ 거래 내역 생성 (트랜잭션 강제 커밋 추가) """
+        """ 거래 내역 생성 (트랜잭션 강제 커밋 추가) """
         data = request.data.copy()
-        data["store_id"] = str(store_id)  # 🔹 store_id 추가
-
+        data["store_id"] = str(store_id) 
         serializer = TransactionSerializer(data=data, context={"request": request})
         if serializer.is_valid():
             try:
-                with transaction.atomic():  # ✅ 트랜잭션 강제 적용
+                with transaction.atomic():  # 트랜잭션 강제 적용
                     transaction_obj = serializer.save()
 
-                    # ✅ DB에 즉시 반영 확인
+                    #  DB에 즉시 반영 확인
                     transaction_obj.refresh_from_db()
-                    print(f"📌 [DEBUG] 저장된 Transaction - ID: {transaction_obj.id}, 날짜: {transaction_obj.date}")
+                    # print(f"📌 [DEBUG] 저장된 Transaction - ID: {transaction_obj.id}, 날짜: {transaction_obj.date}")
 
-                    # ✅ 저장 후 즉시 DB에서 다시 조회
+                    #  저장 후 즉시 DB에서 다시 조회
                     db_check = Transaction.objects.filter(id=transaction_obj.id).exists()
                     if not db_check:
                         print(f"⚠️ [ERROR] `ledger_transaction` 테이블이 아니라 다른 테이블에 저장되었을 가능성 있음!")
@@ -90,11 +89,7 @@ class LedgerTransactionListCreateView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
-# ✅ 2️⃣ 특정 거래 내역 조회, 수정, 삭제
+#  특정 거래 내역 조회, 수정, 삭제
 class LedgerTransactionDetailView(APIView):  
     permission_classes = [IsAuthenticated]
     
@@ -124,20 +119,20 @@ class LedgerTransactionDetailView(APIView):
         store = get_object_or_404(Store, id=store_id, user=request.user)
         transaction = get_object_or_404(Transaction, id=transaction_id, store=store)
 
-        # 🔥 요청 데이터 복사 후 category 처리
+        # 요청 데이터 복사 후 category 처리
         data = request.data.copy()
         
-        category_input = data.get("category")  # ✅ category 값 확인
+        category_input = data.get("category")  # category 값 확인
 
         if category_input:
             if category_input.isdigit():  
-                # ✅ 숫자이면 기존 Category ID로 조회
+                # 숫자이면 기존 Category ID로 조회
                 category = get_object_or_404(Category, id=int(category_input))
             else:
-                # ✅ 문자열이면 카테고리명으로 조회 or 생성
+                # 문자열이면 카테고리명으로 조회 or 생성
                 category, _ = Category.objects.get_or_create(name=category_input)
 
-            data["category"] = category.id  # ✅ ForeignKey에는 ID 저장
+            data["category"] = category.id  # ForeignKey에는 ID 저장
 
         serializer = TransactionSerializer(transaction, data=data, partial=True, context={"request": request})
         
@@ -153,14 +148,14 @@ class LedgerTransactionDetailView(APIView):
     )
 
     def delete(self, request, store_id, transaction_id):
-        """ ✅ 특정 거래 내역 삭제 """
+        """ 특정 거래 내역 삭제 """
         store = get_object_or_404(Store, id=store_id, user=request.user)
         transaction = get_object_or_404(Transaction, id=transaction_id, store=store)
         transaction.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
 
 
-# ✅ 3️⃣ 카테고리 목록 조회 & 생성
+# 카테고리 목록 조회 & 생성
 class CategoryListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -174,7 +169,7 @@ class CategoryListCreateView(APIView):
     )
 
     def get(self, request):
-        """ ✅ 모든 카테고리 목록 조회 """
+        """ 모든 카테고리 목록 조회 """
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -187,7 +182,7 @@ class CategoryListCreateView(APIView):
 
 
     def post(self, request):
-        """ ✅ 새로운 카테고리 추가 """
+        """ 새로운 카테고리 추가 """
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -195,7 +190,7 @@ class CategoryListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ✅ 4️⃣ 특정 카테고리 조회, 수정, 삭제 (`category_id`를 UUID로 변경)
+#  특정 카테고리 조회, 수정, 삭제 (`category_id`를 UUID로 변경)
 class CategoryDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -205,7 +200,7 @@ class CategoryDetailView(APIView):
     )
 
     def get(self, request, category_id):
-        """ ✅ 특정 카테고리 조회 """
+        """ 특정 카테고리 조회 """
         category = get_object_or_404(Category, id=category_id)
         serializer = CategorySerializer(category)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -217,7 +212,7 @@ class CategoryDetailView(APIView):
     )
 
     def put(self, request, category_id):
-        """ ✅ 특정 카테고리 수정 """
+        """ 특정 카테고리 수정 """
         category = get_object_or_404(Category, id=category_id)
         serializer = CategorySerializer(category, data=request.data, partial=True)
         if serializer.is_valid():
@@ -232,7 +227,7 @@ class CategoryDetailView(APIView):
     )
 
     def delete(self, request, category_id):
-        """ ✅ 특정 카테고리 삭제 """
+        """ 특정 카테고리 삭제 """
         category = get_object_or_404(Category, id=category_id)
         category.delete()
         return Response({"message": "삭제되었습니다."}, status=status.HTTP_204_NO_CONTENT)
@@ -252,13 +247,11 @@ class LedgerCalendarView(APIView):
     )
 
     def get(self, request, store_id):
-        print("🚀🚀🚀 GET 요청이 들어왔습니다!") 
         
         year = request.GET.get("year")
         month = request.GET.get("month")
-        day = request.GET.get("day")  # ✅ day 추가
-
-        print(f"📌 [DEBUG] 요청된 파라미터 - year: {year}, month: {month}, day: {day}")  # ✅ 입력값 확인
+        day = request.GET.get("day") 
+        #print(f"📌 [DEBUG] 요청된 파라미터 - year: {year}, month: {month}, day: {day}")  # 입력값 확인
 
         if not year or not month:
             return Response({"error": "year와 month 쿼리 파라미터가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
@@ -270,22 +263,22 @@ class LedgerCalendarView(APIView):
             return Response({"error": "year와 month는 필수 값이며, 숫자여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-        # ✅ 상점 확인
+        # 상점 확인
         store = get_object_or_404(Store, id=store_id, user=request.user)
 
-        # ✅ 거래 필터링
+        # 거래 필터링
         filters = {"store": store, "date__year": year, "date__month": month}
         if day:
-            filters["date__day"] = day  # ✅ day 필터 추가
+            filters["date__day"] = day  # day 필터 추가
 
         transactions = Transaction.objects.filter(**filters)
 
-        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  # ✅ 실제 SQL 확인
-        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  # ✅ 데이터 개수 확인
-        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values('date', 'amount', 'transaction_type'))}")  # ✅ 실제 데이터 확인
+        print(f"📌 [DEBUG] SQL Query: {transactions.query}")  # 실제 SQL 확인
+        print(f"📌 [DEBUG] 필터링된 거래 개수: {transactions.count()}")  # 데이터 개수 확인
+        print(f"📌 [DEBUG] 필터링된 거래 목록: {list(transactions.values('date', 'amount', 'transaction_type'))}")  # 실제 데이터 확인
 
         if day:
-            # ✅ 특정 날짜의 거래 내역 응답
+            # 특정 날짜의 거래 내역 응답
             response_data = [
                 {
                     "transaction_id": str(t.id),
@@ -297,7 +290,7 @@ class LedgerCalendarView(APIView):
                 for t in transactions
             ]
         else:
-            # ✅ 특정 월의 달력 & 차트 데이터 응답
+            # 특정 월의 달력 & 차트 데이터 응답
             day_summary = {}
             for t in transactions:
                 trans_day = t.date.day
