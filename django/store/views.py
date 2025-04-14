@@ -23,7 +23,7 @@ class StoreListView(APIView):
     )    
     
     def get(self, request):
-        """ ✅ 현재 로그인한 사용자의 모든 가게 목록 + 현재 월의 Ledger 차트 정보 포함 """
+        """ 현재 로그인한 사용자의 모든 가게 목록 + 현재 월의 Ledger 차트 정보 포함 """
         stores = Store.objects.filter(user=request.user).order_by("created_at")
         response_data = []
 
@@ -33,7 +33,7 @@ class StoreListView(APIView):
         target_month = now.month
 
         for store in stores:
-            # 🔹 수입(income) 상위 3개 카테고리
+            # 수입(income) 상위 3개 카테고리
             income_transactions = Transaction.objects.filter(
                 store=store, transaction_type="income",
                 date__year=target_year, date__month=target_month
@@ -41,7 +41,7 @@ class StoreListView(APIView):
                 total=Sum("amount")
             ).order_by("-total")[:5]
 
-            # 🔹 지출(expense) 상위 3개 카테고리
+            # 지출(expense) 상위 3개 카테고리
             expense_transactions = Transaction.objects.filter(
                 store=store, transaction_type="expense",
                 date__year=target_year, date__month=target_month
@@ -49,7 +49,7 @@ class StoreListView(APIView):
                 total=Sum("amount")
             ).order_by("-total")[:5]
 
-            # 🔹 수입/지출 합쳐서 chart 데이터 생성
+            # 수입/지출 합쳐서 chart 데이터 생성
             transactions = list(income_transactions) + list(expense_transactions)
 
             chart_data = [
@@ -61,7 +61,7 @@ class StoreListView(APIView):
                 for t in transactions
             ]
 
-            # 🔹 최종 응답 데이터 구성
+            # 최종 응답 데이터 구성
             response_data.append({
                 "store_id": str(store.id),
                 "name": store.name,

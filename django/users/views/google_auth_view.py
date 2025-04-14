@@ -28,13 +28,13 @@ class GoogleExchangeCodeForToken(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        logger.info("🔍 Google OAuth 요청 시작")
+        logger.info(" Google OAuth 요청 시작")
         
         code = request.data.get("code")
-        logger.info(f"📌 받은 Authorization Code: {code}")
+        logger.info(f"받은 Authorization Code: {code}")
 
         if not code:
-            logger.error("❌ Authorization Code가 없습니다.")
+            logger.error("Authorization Code가 없습니다.")
             return JsonResponse({"error": "Authorization code is missing"}, status=400)
 
         token_endpoint = "https://oauth2.googleapis.com/token"
@@ -48,15 +48,15 @@ class GoogleExchangeCodeForToken(APIView):
 
         try:
             response = requests.post(token_endpoint, data=data, headers={"Accept": "application/x-www-form-urlencoded"})
-            logger.info(f"📌 Google OAuth 응답 상태 코드: {response.status_code}")
+            logger.info(f" Google OAuth 응답 상태 코드: {response.status_code}")
 
             response.raise_for_status()
             token_data = response.json()
-            logger.info(f"📌 Google OAuth Token Response: {token_data}")
+            logger.info(f"Google OAuth Token Response: {token_data}")
 
             access_token = token_data.get("access_token")
             if not access_token:
-                logger.error("❌ Google에서 Access Token을 가져오지 못했습니다.")
+                logger.error("Google에서 Access Token을 가져오지 못했습니다.")
                 return JsonResponse({"error": "Failed to obtain access token"}, status=400)
 
             userinfo_endpoint = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -64,21 +64,21 @@ class GoogleExchangeCodeForToken(APIView):
             user_info_response = requests.get(userinfo_endpoint, headers=headers)
             user_info_response.raise_for_status()
             user_info = user_info_response.json()
-            logger.info(f"📌 Google User Info Response: {user_info}")
+            logger.info(f"Google User Info Response: {user_info}")
 
             email = user_info.get("email")
             full_name = user_info.get("name", "").strip()
 
             if not email:
-                logger.error("❌ Google User Info에 이메일 정보가 없습니다.")
+                logger.error("Google User Info에 이메일 정보가 없습니다.")
                 return JsonResponse({"error": "Email not found in user info"}, status=400)
 
-            # ✅ 트랜잭션을 사용하여 User 및 SocialAccount 저장
+            # 트랜잭션을 사용하여 User 및 SocialAccount 저장
             with transaction.atomic():
                 user, created = User.objects.get_or_create(email=email, defaults={"first_name": full_name})
-                logger.info(f"✅ User 정보: {user} (Created: {created})")
+                logger.info(f"User 정보: {user} (Created: {created})")
 
-                # ✅ SocialAccount가 존재하지 않으면 생성
+                # SocialAccount가 존재하지 않으면 생성
                 social_account, social_created = SocialAccount.objects.get_or_create(
                     user=user,
                     provider="google",
@@ -86,22 +86,22 @@ class GoogleExchangeCodeForToken(APIView):
                 )
 
                 if social_created:
-                    logger.info(f"✅ Google 소셜 계정 저장 완료: {user.email}")
+                    logger.info(f"Google 소셜 계정 저장 완료: {user.email}")
 
-            # ✅ JWT 토큰 생성
+            # JWT 토큰 생성
             refresh = RefreshToken.for_user(user)
             access_token_obj = refresh.access_token
             access_token = str(access_token_obj)
             refresh_token = str(refresh)
-            print("✅ JWT 토큰 생성 완료")
+            print("JWT 토큰 생성 완료")
 
-            # ✅ Redis에 Refresh Token 저장
+            # Redis에 Refresh Token 저장
             expires_in = int(access_token_obj['exp'])
             expires_at = datetime.fromtimestamp(expires_in)
             store_refresh_token(user.id, refresh_token, expires_in)
-            print(f"✅ Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
+            print(f" Redis에 Refresh Token 저장 완료 (Expires in: {expires_in}s)")
             
-            # ✅ AccessToken 블랙리스트에 등록하기 위한 OutstandingToken 저장
+            # AccessToken 블랙리스트에 등록하기 위한 OutstandingToken 저장
             OutstandingToken.objects.get_or_create(
                 jti=access_token_obj['jti'],
                 defaults={
@@ -111,7 +111,7 @@ class GoogleExchangeCodeForToken(APIView):
                 }
             )
 
-            # ✅ 응답 데이터 구성 (Bearer 방식)
+            #  응답 데이터 구성 (Bearer 방식)
             response_data = {
                 "access": access_token,
                 "refresh": refresh_token
@@ -120,9 +120,9 @@ class GoogleExchangeCodeForToken(APIView):
 
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Google OAuth 요청 실패: {str(e)}")
+            logger.error(f" Google OAuth 요청 실패: {str(e)}")
             return JsonResponse({"error": f"Google OAuth Request Failed: {str(e)}"}, status=500)
 
         except Exception as e:
-            logger.error(f"❌ 내부 서버 오류 발생: {str(e)}")
+            logger.error(f" 내부 서버 오류 발생: {str(e)}")
             return JsonResponse({"error": f"Internal Server Error: {str(e)}"}, status=500)
