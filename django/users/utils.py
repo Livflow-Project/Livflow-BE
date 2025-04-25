@@ -31,8 +31,15 @@ def delete_refresh_token(user_id):
     """Redis에서 리프레시 토큰 삭제 (로그아웃 시)"""
     redis_client.delete(f"refresh_token:{user_id}")
 
-# ✅ 리프레시 토큰 검증 함수
 def verify_refresh_token(user_id, provided_token):
-    """Redis에 저장된 해시와 비교하여 검증"""
+    """Redis에 저장된 해시와 비교하여 검증. 불일치 시 자동 삭제"""
     stored_hashed_token = get_refresh_token(user_id)
-    return stored_hashed_token == hash_token(provided_token)
+    hashed_provided_token = hash_token(provided_token)
+
+    if stored_hashed_token != hashed_provided_token:
+        # 불일치 → 탈취 가능성 → 삭제
+        delete_refresh_token(user_id)
+        return False
+
+    return True
+
