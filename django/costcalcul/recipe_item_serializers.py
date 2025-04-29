@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from ingredients.models import Ingredient  # ✅ Ingredient 모델 import
+from ingredients.models import Ingredient 
 from .models import RecipeItem
 
-# ✅ 레시피 재료(RecipeItem) 시리얼라이저
+# 레시피 재료(RecipeItem) 시리얼라이저
 class RecipeItemSerializer(serializers.ModelSerializer):
     ingredient_id = serializers.UUIDField(write_only=True)
     required_amount = serializers.DecimalField(source="quantity_used", max_digits=10, decimal_places=2)  
